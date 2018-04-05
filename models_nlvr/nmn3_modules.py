@@ -267,3 +267,95 @@ class Modules:
             scores = fc('fc_scores', att_reduced, output_dim=self.num_choices)
 
         return scores
+    
+    def FindSamePropertyModule(self, input_0, time_idx, batch_idx, map_dim=250,
+        scope='FindSamePropertyModule', reuse=True):
+        # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
+
+        image_feat_grid = self._slice_image_feat_grid(batch_idx)
+        text_param = self._slice_word_vecs(time_idx, batch_idx)
+        # Mapping: att_grid x image_feat_grid x text_param -> att_grid
+        # Input:
+        #   input_0: [N, H, W, 1]
+        #   image_feat_grid: [N, H, W, D_im]
+        #   text_param: [N, D_txt]
+        # Output:
+        #   att_grid: [N, H, W, 1]
+        #
+        # Implementation:
+        #   1. Extract visual features using the input attention map, and
+        #      linear transform to map_dim
+        #   2. linear transform language features to map_dim
+        #   3. Convolve image features to map_dim
+        #   4. Element-wise multiplication of the three, l2_normalize, linear transform.
+        with tf.variable_scope(self.module_variable_scope):
+            with tf.variable_scope(scope, reuse=reuse):
+                image_shape = tf.shape(image_feat_grid)
+                N = tf.shape(time_idx)[0]
+                H = image_shape[1]
+                W = image_shape[2]
+                D_im = image_feat_grid.get_shape().as_list()[-1]
+                D_txt = text_param.get_shape().as_list()[-1]
+
+                # image_feat_mapped has shape [N, H, W, map_dim]
+                image_feat_mapped = _1x1_conv('conv_image', image_feat_grid,
+                                              output_dim=map_dim)
+
+                text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
+                text_param_mapped = tf.reshape(text_param_mapped, to_T([N, 1, 1, map_dim]))
+
+                att_softmax = tf.reshape(
+                    tf.nn.softmax(tf.reshape(input_0, to_T([N, H*W]))),
+                    to_T([N, H, W, 1]))
+                # att_feat has shape [N, D_vis]
+                att_feat = tf.reduce_sum(image_feat_grid * att_softmax, axis=[1, 2])
+                att_feat_mapped = tf.reshape(
+                    fc('fc_att', att_feat, output_dim=map_dim), to_T([N, 1, 1, map_dim]))
+
+                eltwise_mult = tf.nn.l2_normalize(
+                    image_feat_mapped * text_param_mapped * att_feat_mapped, 3)
+                att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1)
+
+        att_grid.set_shape(self.att_shape)
+        return att_grid
+    
+    def AndModule(self, input_0, input_1, time_idx, batch_idx,
+        scope='AndModule', reuse=True):
+        # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
+
+        # Mapping: att_grid x att_grid -> att_grid
+        # Input:
+        #   input_0: [N, H, W, 1]
+        #   input_1: [N, H, W, 1]
+        # Output:
+        #   att_grid: [N, H, W, 1]
+        #
+        # Implementation:
+        #   Take the elementwise-min
+        with tf.variable_scope(self.module_variable_scope):
+            with tf.variable_scope(scope, reuse=reuse):
+                att_grid = tf.minimum(input_0, input_1)
+
+        att_grid.set_shape(self.att_shape)
+        return att_grid
+
+    def OrModule(self, input_0, input_1, time_idx, batch_idx,
+        scope='OrModule', reuse=True):
+        # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
+
+        # Mapping: att_grid x att_grid -> att_grid
+        # Input:
+        #   input_0: [N, H, W, 1]
+        #   input_1: [N, H, W, 1]
+        # Output:
+        #   att_grid: [N, H, W, 1]
+        #
+        # Implementation:
+        #   Take the elementwise-max
+        with tf.variable_scope(self.module_variable_scope):
+            with tf.variable_scope(scope, reuse=reuse):
+                att_grid = tf.maximum(input_0, input_1)
+
+        att_grid.set_shape(self.att_shape)
+        return att_grid
+
