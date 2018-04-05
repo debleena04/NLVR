@@ -1,0 +1,69 @@
+filter              --> Find
+count               --> Count   (1 att) --> vector
+equal_int           --> Compare
+ALL_BOXES           --> Find
+T_QUANTITY_COMPARE  --> Compare (txt + vector) --> vector
+                        Compare_reduce (2 vector) --> vector        
+                        Break   (break image feature into 3 parts) --> 3 atts
+                        XNOR     (2 atts)   --> att (touching edge of a box) (not needed)
+                        Combine (txt + 3 Compare/Compare_att outputs) --> vector
+                        Tranform  (att+txt)--> att (vis input?)
+                        And      (2 atts)--> att
+                        Or (2 atts)--> att
+                        Compare_att  (2 atts)--> vector
+                        Exist (vector)--> Answer
+                        Not (1 att)--> att
+                        Att_reduce (1 att)--> att_summary
+                        Exist_att (txt + 3 att_reduce output) --> Answer
+                        FindSameProperty (2 atts) --> Vector
+                        Describe (1 att)  --> Answer
+
+Compare_reduce "there is a box with T_INT1 item of which T_INT2 are blue"
+
+there is T_ONE box with T_INT T_COLOR item
+There is a box with 2 black items
+
+equal_int 1 count filter ALL_BOXES lambda_x_: equal_int T_INT count filter x lambda_y_: is_T_COLOR y
+filter     --> Find
+count      --> Count 
+ALL_BOXES  --> Break  
+equal_int  --> Compare 
+
+(Combine(Compare(Count(Find(Break)))))
+
+Exist(Combine(Compare(Count(Find(Break)))))
+
+there is T_ONE box with T_INT item
+there is a box with seven items
+
+exist filter ALL_BOXES lambda_x_: equal_int T_INT count x
+
+there is T_ONE tower with T_INT T_COLOR item stack together
+
+there is a T_COLOR tower
+
+Exist(Combine(Compare_att(Find,Find)(Break)))
+
+There is a box with 2 yellow squares not touching the wall.
+
+There are at least two towers with the same height.
+There is a box with multiple items and the three has the same shape and color. (Sameproperty module)
+a1,a2
+XNOR
+
+OR(AND(a1c,a2c) ,AND(a1,a2))
+
+*there are 2 T_COLOR item touch each other
+
+there is a T_COLOR item as the T_LOC of a tower with T_INT item (new module needed)
+there is a T_COLOR item as the T_LOC of a tower with T_QUANTITY_COMPARE T_INT item
+the tower with T_INT item have a T_COLOR item at the T_LOC
+*there is a box with only T_COLOR item
+*there is T_ONE box with many item
+*T_ONE tower have T_INT item of the same color
+*there is T_ONE tower with T_QUANTITY_COMPARE T_INT T_COLOR item stack together
+*there is T_ONE tower with T_QUANTITY_COMPARE T_INT item of same color
+there is a T_COLOR_1 item on a T_COLOR_2 item
+there is a box with a T_COLOR_1 T_SHAPE_1 and a T_COLOR_2 T_SHAPE_2
+*there is a T_COLOR T_SHAPE touch the T_LOC
+there is a box with only T_COLOR1 and T_COLOR2 item
