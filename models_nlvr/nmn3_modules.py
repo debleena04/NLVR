@@ -171,26 +171,6 @@ class Modules:
         att_grid.set_shape(self.att_shape)
         return att_grid
 
-    def AndModule(self, input_0, input_1, time_idx, batch_idx,
-        scope='AndModule', reuse=True):
-        # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
-
-        # Mapping: att_grid x att_grid -> att_grid
-        # Input:
-        #   input_0: [N, H, W, 1]
-        #   input_1: [N, H, W, 1]
-        # Output:
-        #   att_grid: [N, H, W, 1]
-        #
-        # Implementation:
-        #   Take the elementwise-min
-        with tf.variable_scope(self.module_variable_scope):
-            with tf.variable_scope(scope, reuse=reuse):
-                att_grid = tf.minimum(input_0, input_1)
-
-        att_grid.set_shape(self.att_shape)
-        return att_grid
-
     '''def DescribeModule(self, input_0, time_idx, batch_idx,
         map_dim=1024, scope='DescribeModule', reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
