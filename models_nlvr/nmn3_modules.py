@@ -362,5 +362,26 @@ class Modules:
                 scores = fc('fc_eltwise', eltwise_mult, output_dim=self.num_choices)
 
         return scores
+    
+        def BreakModule(self, time_idx, batch_idx, map_dim=500, scope='BreakModule',
+        reuse=True):
+        # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
+
+        image_feat_grid = self._slice_image_feat_grid(batch_idx)
+        text_param = self._slice_word_vecs(time_idx, batch_idx)
+        # Mapping: image_feat_grid x text_param -> att_grid
+        # Input:
+        #   image_feat_grid: [N, H, W, D_im]
+        #   text_param: [N, D_txt]
+        # Output:
+        #   att_grid: [N, H, W, 1]
+        #
+        # Implementation:
+        #   1. Elementwise multiplication between image_feat_grid and text_param
+        #   2. L2-normalization
+        #   3. Linear classification
+        image_feat_array = [image_feat_grid[:,:,:100,:], image_feat_grid[:,:,150:250,:],image_feat_grid[:,:,300:400,:] ]
+            
+        return image_feat_array
 
 
