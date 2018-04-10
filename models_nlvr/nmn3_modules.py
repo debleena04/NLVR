@@ -308,7 +308,7 @@ class Modules:
                 att_max = tf.reduce_max(input_0, axis=[1, 2])
                 # att_reduced has shape [N, 3]
                 att_concat = tf.concat([att_all, att_min, att_max], axis=1)
-                scores = fc('fc_scores', att_concat, output_dim=self.num_choices)
+                scores = fc('fc_scores', att_concat, output_dim=1)
         return scores
     
     def SamePropertyModule(self, input_0, input_1, time_idx, batch_idx,
@@ -362,26 +362,43 @@ class Modules:
                 scores = fc('fc_eltwise', eltwise_mult, output_dim=self.num_choices)
 
         return scores
-    
-        def BreakModule(self, time_idx, batch_idx, map_dim=500, scope='BreakModule',
+   
+    def BreakModule(self, batch_idx, map_dim=500, scope='BreakModule',
         reuse=True):
-        # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
+        # In TF Fold, batch_idx is [N_batch, 1] tensors
 
         image_feat_grid = self._slice_image_feat_grid(batch_idx)
-        text_param = self._slice_word_vecs(time_idx, batch_idx)
-        # Mapping: image_feat_grid x text_param -> att_grid
+        # Mapping: image_feat_grid -> image_feat_array
         # Input:
         #   image_feat_grid: [N, H, W, D_im]
+        
+        # Output:
+        #   image_feat_array: [N,H,100,3]
+        #
+        # Implementation:
+        #   1. Break the feature grid into 3 feature array anfd concat them into one single array
+        image_feat_array = [image_feat_grid[:,:,:100,:], image_feat_grid[:,:,150:250,:],image_feat_grid[:,:,300:400,:] ]
+            
+        return image_feat_array
+    
+    def CompareModule(self, input0, time_idx, batch_idx, map_dim=500, scope='BreakModule',
+        reuse=True):
+        # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
+        # input0 is the vector output from Count module
+        image_feat_grid = self._slice_image_feat_grid(batch_idx)
+        text_param = self._slice_word_vecs(time_idx, batch_idx)
+        # Mapping: input0 x text_param -> scores
+        # Input:
+        #   input0: [N, 1]
         #   text_param: [N, D_txt]
         # Output:
-        #   att_grid: [N, H, W, 1]
+        #   vector : [N,1]
         #
         # Implementation:
         #   1. Elementwise multiplication between image_feat_grid and text_param
         #   2. L2-normalization
         #   3. Linear classification
-        image_feat_array = [image_feat_grid[:,:,:100,:], image_feat_grid[:,:,150:250,:],image_feat_grid[:,:,300:400,:] ]
-            
-        return image_feat_array
+        text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
+        vector_mapped = fc('input_vector',input0, output_dim = map_dim)
 
 
