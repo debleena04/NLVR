@@ -381,7 +381,7 @@ class Modules:
             
         return image_feat_array
     
-    def CompareModule(self, input0, time_idx, batch_idx, map_dim=500, scope='BreakModule',
+    def CompareModule(self, input0, time_idx, batch_idx, map_dim=500, scope='CompareModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # input0 is the vector output from Count module
@@ -400,5 +400,49 @@ class Modules:
         #   3. Linear classification
         text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
         vector_mapped = fc('input_vector',input0, output_dim = map_dim)
+        scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=1)
+        return scores
+   
+    def CompareReduceModule(self, input0, input1, batch_idx, map_dim=500, scope='CompareReduceModule',
+        reuse=True):
+        # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
+        # input0 is the vector output from Count module
+        # input1 is the vector output from count module
+        # Mapping: input0 x text_param -> scores
+        # Input:
+        #   input0 : [N, 1]
+        #   input1 : [N, 1]
+        # Output:
+        #   vector : [N,1]
+        #
+        # Implementation:
+        #   1. Elementwise multiplication between image_feat_grid and text_param
+        #   2. L2-normalization
+        #   3. Linear classification
+        vector0_mapped = fc('input_vector',input1, output_dim = map_dim)
+        vector1_mapped = fc('input_vector',input0, output_dim = map_dim)
+        scores = fc('fc_eltwise', vector0_mapped + vector1_mapped, output_dim=1)
+        return scores
+    
+    def CompareAttModule(self, input0, input1, batch_idx, map_dim=500, scope='CompareAttModule',
+        reuse=True):
+        # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
+        # input0 is the vector output from Count module
+        # input1 is the vector output from count module
+        # Mapping: input0 x text_param -> scores
+        # Input:
+        #   input0 : [N, 1]
+        #   input1 : [N, 1]
+        # Output:
+        #   vector : [N,1]
+        #
+        # Implementation:
+        #   1. Elementwise multiplication between image_feat_grid and text_param
+        #   2. L2-normalization
+        #   3. Linear classification
+        vector0_mapped = fc('input_vector',input1, output_dim = map_dim)
+        vector1_mapped = fc('input_vector',input0, output_dim = map_dim)
+        scores = fc('fc_eltwise', vector0_mapped + vector1_mapped, output_dim=1)
+        return scores
 
 
