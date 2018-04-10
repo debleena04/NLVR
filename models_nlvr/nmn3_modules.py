@@ -424,7 +424,7 @@ class Modules:
         scores = fc('fc_eltwise', vector0_mapped + vector1_mapped, output_dim=1)
         return scores
     
-    def CompareAttModule(self, input0, input1, batch_idx, map_dim=500, scope='CompareAttModule',
+    def CompareAttModule(self, input0, input1, time_idx, map_dim=500, scope='CompareAttModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # input0 is the vector output from Count module
@@ -440,9 +440,14 @@ class Modules:
         #   1. Elementwise multiplication between image_feat_grid and text_param
         #   2. L2-normalization
         #   3. Linear classification
-        vector0_mapped = fc('input_vector',input1, output_dim = map_dim)
-        vector1_mapped = fc('input_vector',input0, output_dim = map_dim)
-        scores = fc('fc_eltwise', vector0_mapped + vector1_mapped, output_dim=1)
+        N = tf.shape(time_idx)[0]
+        att_feat0_mapped = tf.reshape(
+                    fc('fc_att', input0, output_dim=map_dim),
+                    to_T([N, map_dim]))
+        att_feat1_mapped = tf.reshape(
+                    fc('fc_att', input1, output_dim=map_dim),
+                    to_T([N, map_dim]))
+        scores = fc('fc_eltwise', att_feat0_mapped + att_feat1_mapped, output_dim=1)
         return scores
 
 
