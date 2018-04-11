@@ -56,10 +56,20 @@ class Modules:
         input_att = tf.placeholder(tf.float32, att_shape)
         time_idx = tf.placeholder(tf.int32, [None])
         batch_idx = tf.placeholder(tf.int32, [None])
+        input_vector = tf.placeholder(tf.int32, [None])
         self.FindModule(time_idx, batch_idx,map_dim, reuse=False)
         self.TransformModule(input_att, time_idx, batch_idx, map_dim, reuse=False)
         self.AndModule(input_att, input_att, time_idx, batch_idx, reuse=False)
+        self.OrModule(input_att, input_att, time_idx, batch_idx, reuse=False)
+        self.NotModule(input_att, time_idx, batch_idx, reuse=False)
         self.DescribeModule(input_att, time_idx, batch_idx, reuse=False)
+        self.CountModule(input_att, time_idx, batch_idx, reuse=False)
+        self.SamePropertyModule(input_att, input_att, time_idx, batch_idx, reuse=False)
+        self.BreakModule(time_idx, batch_idx, reuse=False)
+        self.CompareModule(input_vector, time_idx, batch_idx, reuse=False)
+        self.CompareReduceModule(input_vector, input_vector, time_idx, batch_idx, reuse=False)
+        self.CompareAttModule(input_vector, input_vector, time_idx, batch_idx, reuse=False)
+        self.CombineModule(input_vector, input_vector, input_vector, time_idx, batch_idx, reuse=False)
 
     def _slice_image_feat_grid(self, batch_idx):
         # In TF Fold, batch_idx is a [N_batch, 1] tensor
@@ -288,7 +298,7 @@ class Modules:
         att_grid.set_shape(self.att_shape)
         return att_grid
     
-    def NotModule(self, input_0 time_idx, batch_idx,
+    def NotModule(self, input_0, time_idx, batch_idx,
         scope='NotModule', reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
 
@@ -382,7 +392,7 @@ class Modules:
 
         return scores
    
-    def BreakModule(self, batch_idx, map_dim=500, scope='BreakModule',
+    def BreakModule(self, time_idx, batch_idx, map_dim=500, scope='BreakModule',
         reuse=True):
         # In TF Fold, batch_idx is [N_batch, 1] tensors
 
@@ -422,7 +432,7 @@ class Modules:
         scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=1)
         return scores
    
-    def CompareReduceModule(self, input0, input1, batch_idx, map_dim=500, scope='CompareReduceModule',
+    def CompareReduceModule(self, input0, input1, time_idx, batch_idx, map_dim=500, scope='CompareReduceModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # input0 is the vector output from Count module
@@ -443,7 +453,7 @@ class Modules:
         scores = fc('fc_eltwise', vector0_mapped + vector1_mapped, output_dim=1)
         return scores
     
-    def CompareAttModule(self, input0, input1, time_idx, map_dim=500, scope='CompareAttModule',
+    def CompareAttModule(self, input0, input1, time_idx, batch_idx, map_dim=500, scope='CompareAttModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # input0 is the vector output from Count module
@@ -469,7 +479,7 @@ class Modules:
         scores = fc('fc_eltwise', att_feat0_mapped + att_feat1_mapped, output_dim=1)
         return scores
     
-    def CombineModule(self, input0, input1, input2, time_idx, map_dim=500, scope='CombineModule',
+    def CombineModule(self, input0, input1, input2, time_idx, batch_idx, map_dim=500, scope='CombineModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # input0 is the vector output to be combined
