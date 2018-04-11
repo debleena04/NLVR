@@ -399,7 +399,7 @@ class Modules:
         #   2. L2-normalization
         #   3. Linear classification
         text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
-        vector_mapped = fc('input_vector',input0, output_dim = map_dim)
+        vector_mapped = fc('input_vector0',input0, output_dim = map_dim)
         scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=1)
         return scores
    
@@ -419,8 +419,8 @@ class Modules:
         #   1. Elementwise multiplication between image_feat_grid and text_param
         #   2. L2-normalization
         #   3. Linear classification
-        vector0_mapped = fc('input_vector',input1, output_dim = map_dim)
-        vector1_mapped = fc('input_vector',input0, output_dim = map_dim)
+        vector0_mapped = fc('input_vector0',input0, output_dim = map_dim)
+        vector1_mapped = fc('input_vector1',input1, output_dim = map_dim)
         scores = fc('fc_eltwise', vector0_mapped + vector1_mapped, output_dim=1)
         return scores
     
@@ -449,5 +449,37 @@ class Modules:
                     to_T([N, map_dim]))
         scores = fc('fc_eltwise', att_feat0_mapped + att_feat1_mapped, output_dim=1)
         return scores
+    
+    def CombineModule(self, input0, input1, input2, time_idx, map_dim=500, scope='CombineModule',
+        reuse=True):
+        # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
+        # input0 is the vector output to be combined
+        # input1 is the vector output to be combined
+        # input2 is the vector output to be combined
+        # Mapping: input0 x text_param -> scores
+        # Input:
+        #   input0 : [N, 1]
+        #   input1 : [N, 1]
+        #   input2 : [N, 1]
+        # Output:
+        #   vector : [N,1]
+        #
+        # Implementation:
+        #   1. Elementwise multiplication between image_feat_grid and text_param
+        #   2. L2-normalization
+        #   3. Linear classification
+        N = tf.shape(time_idx)[0]
+        text_param = self._slice_word_vecs(time_idx, batch_idx)
+        text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
+        vector0_mapped = fc('input_vector0',input0, output_dim = map_dim)
+        vector1_mapped = fc('input_vector1',input1, output_dim = map_dim)
+        vector2_mapped = fc('input_vector2',input2, output_dim = map_dim)
+        score_box0 = tf.nn.sigmoid(vector0_mapped)
+        score_box1 = tf.nn.sigmoid(vector1_mapped)
+        score_box2 = tf.nn.sigmoid(vector2_mapped)
+        return scores
+
+
+
 
 
