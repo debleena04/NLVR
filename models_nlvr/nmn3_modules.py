@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 import tensorflow as tf
 from tensorflow import convert_to_tensor as to_T
+from sklearn import MinMaxScaler
 
 from models_nlvr.cnn import fc_layer as fc, conv_layer as conv
 from models_nlvr.empty_safe_conv import empty_safe_1x1_conv as _1x1_conv
@@ -311,11 +312,15 @@ class Modules:
         #
         # Implementation:
         #   Take the 1 - attention value
+        scaler = MinMaxScaler()
+        att_fit = scaler.fit(input_0)
+        att_normalised = scaler.transform(input_0)
         with tf.variable_scope(self.module_variable_scope):
             with tf.variable_scope(scope, reuse=reuse):
-                att_grid = 1 - input_0
-        att_grid.set_shape(self.att_shape)
-        return att_grid
+                att_grid = 1 - att_normalised
+                att_grid.set_shape(self.att_shape)
+        att_grid_reshape = scaler.inverse_transform(att_grid)
+        return att_grid_reshape
     
     def CountModule(self, input_0, time_idx, batch_idx,
         scope='CountModule', reuse=True):
@@ -406,7 +411,14 @@ class Modules:
         #
         # Implementation:
         #   1. Break the feature grid into 3 feature array anfd concat them into one single array
-        image_feat_array = [image_feat_grid[:,:,:100,:], image_feat_grid[:,:,150:250,:],image_feat_grid[:,:,300:400,:] ]
+        with tf.variable_scope(self.module_variable_scope):
+            with tf.variable_scope(scope, reuse=reuse):
+                image_shape = tf.shape(image_feat_grid)
+                N = tf.shape(time_idx)[0]
+                H = image_shape[1]
+                W = image_shape[2]
+                D_im = image_feat_grid.get_shape().as_list()[-1]
+        image_feat_array = [image_feat_grid[:,:,:W/3,:], image_feat_grid[:,:,W/3+1:2*W/3,:],image_feat_grid[:,:,2*W/3+1:,:] ]
             
         return image_feat_array
     
@@ -429,7 +441,8 @@ class Modules:
         #   3. Linear classification
         text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
         vector_mapped = fc('input_vector0',input0, output_dim = map_dim)
-        scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=1)
+        #scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=1)
+        scores = text_param_mapped + vector_mapped
         return scores
    
     def CompareReduceModule(self, input0, input1, time_idx, batch_idx, map_dim=500, scope='CompareReduceModule',
@@ -448,9 +461,9 @@ class Modules:
         #   1. Elementwise multiplication between image_feat_grid and text_param
         #   2. L2-normalization
         #   3. Linear classification
-        vector0_mapped = fc('input_vector0',input0, output_dim = map_dim)
-        vector1_mapped = fc('input_vector1',input1, output_dim = map_dim)
-        scores = fc('fc_eltwise', vector0_mapped + vector1_mapped, output_dim=1)
+        #vector0_mapped = fc('input_vector0',input0, output_dim = map_dim)
+        #vector1_mapped = fc('input_vector1',input1, output_dim = map_dim)
+        scores = fc('fc_eltwise', input0 + input1, output_dim=map_dim)
         return scores
     
     def CompareAttModule(self, input0, input1, time_idx, batch_idx, map_dim=500, scope='CompareAttModule',
@@ -476,7 +489,7 @@ class Modules:
         att_feat1_mapped = tf.reshape(
                     fc('fc_att', input1, output_dim=map_dim),
                     to_T([N, map_dim]))
-        scores = fc('fc_eltwise', att_feat0_mapped + att_feat1_mapped, output_dim=1)
+        scores = fc('fc_eltwise', att_feat0_mapped + att_feat1_mapped, output_dim=map_dim)
         return scores
     
     def CombineModule(self, input0, input1, input2, time_idx, batch_idx, map_dim=500, scope='CombineModule',
