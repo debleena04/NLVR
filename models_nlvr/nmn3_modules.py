@@ -414,11 +414,14 @@ class Modules:
         with tf.variable_scope(self.module_variable_scope):
             with tf.variable_scope(scope, reuse=reuse):
                 image_shape = tf.shape(image_feat_grid)
-                N = tf.shape(time_idx)[0]
-                H = image_shape[1]
-                W = image_shape[2]
+                N = tf.Session().run(image_shape[0])
+                H = tf.Session().run(image_shape[1])
+                W = tf.Session().run(image_shape[2])
                 D_im = image_feat_grid.get_shape().as_list()[-1]
-        image_feat_array = [image_feat_grid[:,:,:W/3,:], image_feat_grid[:,:,W/3+1:2*W/3,:],image_feat_grid[:,:,2*W/3+1:,:] ]
+        image_feat_grid1 = tf.Session().run(image_feat_grid[:,:,:W/3,:])
+        image_feat_grid2 = tf.Session().run(image_feat_grid[:,:,W/3:2*W/3,:])
+        image_feat_grid3 = tf.Session().run(image_feat_grid[:,:,2*W/3:W-1,:] )
+        image_feat_array = np.vstack((image_feat_grid1, image_feat_grid2, image_feat_grid3)) 
             
         return image_feat_array
     
