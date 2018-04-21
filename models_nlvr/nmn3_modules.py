@@ -3,7 +3,7 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 import tensorflow as tf
 from tensorflow import convert_to_tensor as to_T
-from sklearn import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler
 
 from models_nlvr.cnn import fc_layer as fc, conv_layer as conv
 from models_nlvr.empty_safe_conv import empty_safe_1x1_conv as _1x1_conv
@@ -318,7 +318,8 @@ class Modules:
         with tf.variable_scope(self.module_variable_scope):
             with tf.variable_scope(scope, reuse=reuse):
                 att_grid = 1 - att_normalised
-                att_grid.set_shape(self.att_shape)
+                shape=list(att_grid_reshape.shape)
+                att_grid_reshape= np.reshape(att_grid_reshape,(1,shape[0],shape[-1],1))
         att_grid_reshape = scaler.inverse_transform(att_grid)
         return att_grid_reshape
     
