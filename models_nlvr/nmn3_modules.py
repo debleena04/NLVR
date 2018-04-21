@@ -318,9 +318,10 @@ class Modules:
         with tf.variable_scope(self.module_variable_scope):
             with tf.variable_scope(scope, reuse=reuse):
                 att_grid = 1 - att_normalised
-                shape=list(att_grid_reshape.shape)
-                att_grid_reshape= np.reshape(att_grid_reshape,(1,shape[0],shape[-1],1))
+                
         att_grid_reshape = scaler.inverse_transform(att_grid)
+        shape=list(att_grid_reshape.shape)
+        att_grid_reshape= np.reshape(att_grid_reshape,(1,shape[0],shape[-1],1))
         return att_grid_reshape
     
     def CountModule(self, input_0, time_idx, batch_idx,
