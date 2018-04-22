@@ -518,12 +518,11 @@ class Modules:
         N = tf.shape(time_idx)[0]
         text_param = self._slice_word_vecs(time_idx, batch_idx)
         text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
-        vector0_mapped = fc('input_vector0',input0, output_dim = 1)
-        vector1_mapped = fc('input_vector1',input1, output_dim = 1)
-        vector2_mapped = fc('input_vector2',input2, output_dim = 1)
-        score_box0 = tf.nn.sigmoid(vector0_mapped)
-        score_box1 = tf.nn.sigmoid(vector1_mapped)
-        score_box2 = tf.nn.sigmoid(vector2_mapped)
+        with tf.variable_scope('token_prediction'):
+                W_y = tf.get_variable('weights', [len(input0)*3, self.decoder_num_vocab],
+                    initializer=tf.contrib.layers.xavier_initializer())
+                b_y = tf.get_variable('biases', self.decoder_num_vocab,
+                    initializer=tf.constant_initializer(0.))
         return scores
 
 
