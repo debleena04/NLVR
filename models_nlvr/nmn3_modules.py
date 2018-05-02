@@ -38,7 +38,7 @@ class Modules:
         self.word_vecs = word_vecs
         self.encoder_states = encoder_states
         self.num_choices = num_choices
-
+        self.map_dim = map_dim
         # Capture the variable scope for creating all variables
         with tf.variable_scope('module_variables') as module_variable_scope:
             self.module_variable_scope = module_variable_scope
@@ -344,7 +344,7 @@ class Modules:
                 att_max = tf.reduce_max(input_0, axis=[1, 2])
                 # att_reduced has shape [N, 3]
                 att_concat = tf.concat([att_all, att_min, att_max], axis=1)
-                scores = fc('fc_scores', att_concat, output_dim=1)
+                scores = fc('fc_scores', att_concat, output_dim=map_dim)
         return scores
     
     def SamePropertyModule(self, input_0, input_1, time_idx, batch_idx,
@@ -521,9 +521,9 @@ class Modules:
         text_param = self._slice_word_vecs(time_idx, batch_idx)
         text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
         with tf.variable_scope('token_prediction'):
-                W_y = tf.get_variable('weights', [len(input0)*3, self.decoder_num_vocab],
+                W_y = tf.get_variable('weights', [len(input0)+map_dim,2],
                     initializer=tf.contrib.layers.xavier_initializer())
-                b_y = tf.get_variable('biases', self.decoder_num_vocab,
+                b_y = tf.get_variable('biases', 2,
                     initializer=tf.constant_initializer(0.))
         return scores
 
