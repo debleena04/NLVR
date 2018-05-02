@@ -92,7 +92,7 @@ class Modules:
             return tf.gather(self.encoder_states, batch_idx)
         else:
             return None
-
+       
     def FindModule(self, time_idx, batch_idx, map_dim=500, scope='FindModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
@@ -402,8 +402,9 @@ class Modules:
     def BreakModule(self, time_idx, batch_idx, map_dim=500, scope='BreakModule',
         reuse=True):
         # In TF Fold, batch_idx is [N_batch, 1] tensors
-
-        image_feat_grid = self._slice_image_feat_grid(batch_idx)
+        
+        image_feat = self._slice_image_feat_grid(batch_idx)
+        image_feat_grid = tf.pad(image_feat, [[0,0],[0,0],[1,1],[0,0]],'CONSTANT')
         # Mapping: image_feat_grid -> image_feat_array
         # Input:
         #   image_feat_grid: [N, H, W, D_im]
@@ -420,9 +421,10 @@ class Modules:
                 H = tf.Session().run(image_shape[1])
                 W = tf.Session().run(image_shape[2])
                 D_im = image_feat_grid.get_shape().as_list()[-1]
+       
         image_feat_grid1 = tf.Session().run(image_feat_grid[:,:,:W/3,:])
         image_feat_grid2 = tf.Session().run(image_feat_grid[:,:,W/3:2*W/3,:])
-        image_feat_grid3 = tf.Session().run(image_feat_grid[:,:,2*W/3:W-1,:] )
+        image_feat_grid3 = tf.Session().run(image_feat_grid[:,:,2*W/3:W,:] )
         image_feat_array = np.vstack((image_feat_grid1, image_feat_grid2, image_feat_grid3)) 
             
         return image_feat_array
