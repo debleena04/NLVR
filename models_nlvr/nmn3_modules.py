@@ -430,7 +430,7 @@ class Modules:
             
         return image_feat_array
     
-    def AttReduceModule(self, input_0, time_idx, batch_idx,
+    def AttReduceModule(self, input_0, time_idx, batch_idx, map_dim=500,
         scope='AttReduceModule', reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
 
@@ -450,7 +450,7 @@ class Modules:
                 att_max = tf.reduce_max(input_0, axis=[1, 2])
                 # att_reduced has shape [N, 3]
                 att_reduced = tf.concat([att_min, att_avg, att_max], axis=1)
-                scores = fc('fc_scores', att_reduced, output_dim=self.num_choices)
+                scores = fc('fc_scores', att_reduced, output_dim=map_dim)
         return scores
     
     def CompareModule(self, input0, time_idx, batch_idx, map_dim=500, scope='CompareModule',
