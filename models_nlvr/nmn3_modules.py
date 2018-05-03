@@ -67,6 +67,7 @@ class Modules:
         self.CountModule(input_att, time_idx, batch_idx, reuse=False)
         self.SamePropertyModule(input_att, input_att, time_idx, batch_idx, reuse=False)
         self.BreakModule(time_idx, batch_idx, reuse=False)
+        self.AttReduceModule(input_att, time_idx, batch_idx, reuse=False)
         self.CompareModule(input_vector, time_idx, batch_idx, reuse=False)
         self.CompareReduceModule(input_vector, input_vector, time_idx, batch_idx, reuse=False)
         self.CompareAttModule(input_vector, input_vector, time_idx, batch_idx, reuse=False)
@@ -428,6 +429,29 @@ class Modules:
         image_feat_array = np.vstack((image_feat_grid1, image_feat_grid2, image_feat_grid3)) 
             
         return image_feat_array
+    
+    def AttReduceModule(self, input_0, time_idx, batch_idx,
+        scope='AttReduceModule', reuse=True):
+        # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
+
+        # Mapping: att_grid -> answer probs
+        # Input:
+        #   att_grid: [N, H, W, 1]
+        # Output:
+        #   answer_scores: [N, self.num_choices]
+        #
+        # Implementation:
+        #   1. Max-pool over att_grid
+        #   2. a linear mapping layer (without ReLU)
+        with tf.variable_scope(self.module_variable_scope):
+            with tf.variable_scope(scope, reuse=reuse):
+                att_min = tf.reduce_min(input_0, axis=[1, 2])
+                att_avg = tf.reduce_mean(input_0, axis=[1, 2])
+                att_max = tf.reduce_max(input_0, axis=[1, 2])
+                # att_reduced has shape [N, 3]
+                att_reduced = tf.concat([att_min, att_avg, att_max], axis=1)
+                scores = fc('fc_scores', att_reduced, output_dim=self.num_choices)
+        return scores
     
     def CompareModule(self, input0, time_idx, batch_idx, map_dim=500, scope='CompareModule',
         reuse=True):
