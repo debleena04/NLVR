@@ -450,8 +450,8 @@ class Modules:
                 att_max = tf.reduce_max(input_0, axis=[1, 2])
                 # att_reduced has shape [N, 3]
                 att_reduced = tf.concat([att_min, att_avg, att_max], axis=1)
-                scores = fc('fc_scores', att_reduced, output_dim=map_dim)
-        return scores
+                #scores = fc('fc_scores', att_reduced, output_dim=map_dim)
+        return att_reduced
     
     def CompareModule(self, input0, time_idx, batch_idx, map_dim=500, scope='CompareModule',
         reuse=True):
@@ -472,8 +472,8 @@ class Modules:
         #   3. Linear classification
         text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
         vector_mapped = fc('input_vector0',input0, output_dim = map_dim)
-        #scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=1)
-        scores = text_param_mapped + vector_mapped
+        scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=map_dim)
+        #scores = text_param_mapped + vector_mapped
         return scores
    
     def CompareReduceModule(self, input0, input1, time_idx, batch_idx, map_dim=500, scope='CompareReduceModule',
@@ -543,11 +543,12 @@ class Modules:
         #   3. Linear classification
         N = tf.shape(time_idx)[0]
         text_param = self._slice_word_vecs(time_idx, batch_idx)
-        text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
+        text_param_mapped = fc('fc_text', text_param, output_dim=3)
+        text_param_softmax = tf.nn.softmax(text_param_mapped)
         with tf.variable_scope('token_prediction'):
-                W_y = tf.get_variable('weights', [len(input0)+map_dim,2],
+                W_y = tf.get_variable('weights', [len(input0),1],
                     initializer=tf.contrib.layers.xavier_initializer())
-                b_y = tf.get_variable('biases', 2,
+                b_y = tf.get_variable('biases', 1,
                     initializer=tf.constant_initializer(0.))
         return scores
 
