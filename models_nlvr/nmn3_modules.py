@@ -57,7 +57,7 @@ class Modules:
         input_att = tf.placeholder(tf.float32, att_shape)
         time_idx = tf.placeholder(tf.int32, [None])
         batch_idx = tf.placeholder(tf.int32, [None])
-        input_vector = tf.placeholder(tf.int32, [None])
+        input_vector = tf.placeholder(tf.float32, [None])
         self.FindModule(time_idx, batch_idx,map_dim, reuse=False)
         self.TransformModule(input_att, time_idx, batch_idx, map_dim, reuse=False)
         self.AndModule(input_att, input_att, time_idx, batch_idx, reuse=False)
