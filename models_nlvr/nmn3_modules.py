@@ -552,14 +552,14 @@ class Modules:
                     initializer=tf.contrib.layers.xavier_initializer())
                 b_y = tf.get_variable('biases', 1,
                     initializer=tf.constant_initializer(0.))
-        input_0_mapped = tf.sigmoid(tf.nn.xw_plus_b(input0, w_y, b_y))
-        input_1_mapped = tf.sigmoid(tf.nn.xw_plus_b(input1, w_y, b_y))
-        input_2_mapped = tf.sigmoid(tf.nn.xw_plus_b(input2, w_y, b_y))
-        scores_matrix = [tf.miminum(input_0_mapped, input_1_mapped, input_2_mapped),
+                input_0_mapped = tf.sigmoid(tf.nn.xw_plus_b(input0, w_y, b_y))
+                input_1_mapped = tf.sigmoid(tf.nn.xw_plus_b(input1, w_y, b_y))
+                input_2_mapped = tf.sigmoid(tf.nn.xw_plus_b(input2, w_y, b_y))
+                scores_matrix = [tf.miminum(input_0_mapped, input_1_mapped, input_2_mapped),
                   tf.maximum(input_0_mapped, input_1_mapped, input_2_mapped),
                   tf.maximum(tf.minimum(input_0_mapped,input_1_mapped), tf.minimum(input_0_mapped,input_2_mapped), tf.minimum(input_2_mapped,input_1_mapped))]
-        score = tf.matmul(text_param_softmax,tf.matrix_transpose(scores_matrix))
-        scores = tf.convert_to_tensor([score,1-score])
+                score = tf.matmul(text_param_softmax,tf.matrix_transpose(scores_matrix))
+                scores = tf.convert_to_tensor([score,1-score])
         return scores
     
     def ExistAttModule(self, input0, input1, input2, time_idx, batch_idx, map_dim=500, scope='ExistAttModule',
@@ -589,14 +589,16 @@ class Modules:
                     initializer=tf.contrib.layers.xavier_initializer())
                 b_y = tf.get_variable('biases', 1,
                     initializer=tf.constant_initializer(0.))
-        input_0_mapped = tf.sigmoid(tf.nn.xw_plus_b(input0, w_y, b_y))
-        input_1_mapped = tf.sigmoid(tf.nn.xw_plus_b(input1, w_y, b_y))
-        input_2_mapped = tf.sigmoid(tf.nn.xw_plus_b(input2, w_y, b_y))
-        scores_matrix = [tf.miminum(input_0_mapped, input_1_mapped, input_2_mapped),
+                input_0_mapped = tf.sigmoid(tf.nn.xw_plus_b(input0, w_y, b_y))
+                input_1_mapped = tf.sigmoid(tf.nn.xw_plus_b(input1, w_y, b_y))
+                input_2_mapped = tf.sigmoid(tf.nn.xw_plus_b(input2, w_y, b_y))
+                scores_matrix = [tf.miminum(input_0_mapped, input_1_mapped, input_2_mapped),
                   tf.maximum(input_0_mapped, input_1_mapped, input_2_mapped),
                   tf.maximum(tf.minimum(input_0_mapped,input_1_mapped), tf.minimum(input_0_mapped,input_2_mapped), tf.minimum(input_2_mapped,input_1_mapped))]
-        score = tf.matmul(text_param_softmax,tf.matrix_transpose(scores_matrix))
-        scores = tf.convert_to_tensor([score,1-score])
+                score = tf.matmul(text_param_softmax,tf.matrix_transpose(scores_matrix))
+                scores = tf.convert_to_tensor([score,1-score])
+                scores = fc('fc_scores', scores, output_dim=self.num_choices)
+                scores = tf.nn.softmax(scores)
         return scores
     
     def ExistModule(self, input_0, time_idx, batch_idx, scope='ExistModule', reuse=True):
