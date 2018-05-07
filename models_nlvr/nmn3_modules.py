@@ -72,6 +72,7 @@ class Modules:
         self.CompareReduceModule(input_vector, input_vector, time_idx, batch_idx, reuse=False)
         self.CompareAttModule(input_vector, input_vector, time_idx, batch_idx, reuse=False)
         self.CombineModule(input_vector, input_vector, input_vector, time_idx, batch_idx, reuse=False)
+        self.ExistAttModule(input_vector, input_vector, input_vector, time_idx, batch_idx, reuse=False)
 
     def _slice_image_feat_grid(self, batch_idx):
         # In TF Fold, batch_idx is a [N_batch, 1] tensor
@@ -257,7 +258,7 @@ class Modules:
             # att_reduced has shape [N, 3]
             att_reduced = tf.concat([att_min, att_avg, att_max], axis=1)
             scores = fc('fc_scores', att_reduced, output_dim=self.num_choices)
-
+            scores = tf.nn.softmax(scores)
         return scores
     
     def AndModule(self, input_0, input_1, time_idx, batch_idx,
@@ -546,11 +547,76 @@ class Modules:
         text_param_mapped = fc('fc_text', text_param, output_dim=3)
         text_param_softmax = tf.nn.softmax(text_param_mapped)
         with tf.variable_scope('token_prediction'):
-                W_y = tf.get_variable('weights', [len(input0),1],
+                w_y = tf.get_variable('weights', [len(input0),1],
                     initializer=tf.contrib.layers.xavier_initializer())
                 b_y = tf.get_variable('biases', 1,
                     initializer=tf.constant_initializer(0.))
+        input_0_mapped = tf.sigmoid(tf.nn.xw_plus_b(input0, w_y, b_y))
+        input_1_mapped = tf.sigmoid(tf.nn.xw_plus_b(input1, w_y, b_y))
+        input_2_mapped = tf.sigmoid(tf.nn.xw_plus_b(input2, w_y, b_y))
+        scores_matrix = [tf.miminum(input_0_mapped, input_1_mapped, input_2_mapped),
+                  tf.maximum(input_0_mapped, input_1_mapped, input_2_mapped),
+                  tf.maximum(tf.minimum(input_0_mapped,input_1_mapped), tf.minimum(input_0_mapped,input_2_mapped), tf.minimum(input_2_mapped,input_1_mapped))]
+        score = tf.matmul(text_param_softmax,tf.matrix_transpose(scores_matrix))
+        scores = tf.convert_to_tensor([score,1-score])
         return scores
+    
+    def ExistAttModule(self, input0, input1, input2, time_idx, batch_idx, map_dim=500, scope='ExistAttModule',
+        reuse=True):
+        # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
+        # input0 is the attention output to be combined
+        # input1 is the attention output to be combined
+        # input2 is the attention output to be combined
+        # Mapping: input0 x text_param -> scores
+        # Input:
+        #   input0 : [N, 1]
+        #   input1 : [N, 1]
+        #   input2 : [N, 1]
+        # Output:
+        #   vector : [N,1]
+        #
+        # Implementation:
+        #   1. Elementwise multiplication between image_feat_grid and text_param
+        #   2. L2-normalization
+        #   3. Linear classification
+        N = tf.shape(time_idx)[0]
+        text_param = self._slice_word_vecs(time_idx, batch_idx)
+        text_param_mapped = fc('fc_text', text_param, output_dim=3)
+        text_param_softmax = tf.nn.softmax(text_param_mapped)
+        with tf.variable_scope('token_prediction'):
+                w_y = tf.get_variable('weights', [len(input0),1],
+                    initializer=tf.contrib.layers.xavier_initializer())
+                b_y = tf.get_variable('biases', 1,
+                    initializer=tf.constant_initializer(0.))
+        input_0_mapped = tf.sigmoid(tf.nn.xw_plus_b(input0, w_y, b_y))
+        input_1_mapped = tf.sigmoid(tf.nn.xw_plus_b(input1, w_y, b_y))
+        input_2_mapped = tf.sigmoid(tf.nn.xw_plus_b(input2, w_y, b_y))
+        scores_matrix = [tf.miminum(input_0_mapped, input_1_mapped, input_2_mapped),
+                  tf.maximum(input_0_mapped, input_1_mapped, input_2_mapped),
+                  tf.maximum(tf.minimum(input_0_mapped,input_1_mapped), tf.minimum(input_0_mapped,input_2_mapped), tf.minimum(input_2_mapped,input_1_mapped))]
+        score = tf.matmul(text_param_softmax,tf.matrix_transpose(scores_matrix))
+        scores = tf.convert_to_tensor([score,1-score])
+        return scores
+    
+    def ExistModule(self, input_0, time_idx, batch_idx, scope='ExistModule', reuse=True):
+        # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
+
+        
+        # Mapping: att_grid -> answer probs
+        # Input:
+        #   att_grid: [N, H, W, 1]
+        # Output:
+        #   answer_scores: [N, self.num_choices]
+        #
+        # Implementation:
+        #   1. Max-pool over att_grid
+        #   2. a linear mapping layer (without ReLU)
+        with tf.variable_scope(scope, reuse=reuse):
+            scores = fc('fc_scores', input_0, output_dim=self.num_choices)
+            scores = tf.nn.softmax(scores)
+        return scores
+    
+    
 
 
 
