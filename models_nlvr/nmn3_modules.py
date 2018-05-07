@@ -73,6 +73,7 @@ class Modules:
         self.CompareAttModule(input_vector, input_vector, time_idx, batch_idx, reuse=False)
         self.CombineModule(input_vector, input_vector, input_vector, time_idx, batch_idx, reuse=False)
         self.ExistAttModule(input_vector, input_vector, input_vector, time_idx, batch_idx, reuse=False)
+        self.ExistModule(input_vector, time_idx, batch_idx, reuse=False)
 
     def _slice_image_feat_grid(self, batch_idx):
         # In TF Fold, batch_idx is a [N_batch, 1] tensor
