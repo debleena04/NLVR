@@ -10,14 +10,38 @@ _module_input_num = {
     '_Find': 0,
     '_Transform': 1,
     '_And': 2,
-    '_Describe': 1}
+    '_Describe': 1,
+    '_Or': 2,
+    '_Not': 1,
+    '_Count': 1,
+    '_SameProperty': 2,
+    '_Break': 0,
+    '_AttReduce': 1,
+    '_Compare': 1,
+    '_CompareReduce': 1,
+    '_CompareAtt': 2,
+    '_Combine': 3,
+    '_ExistAtt': 3,
+    '_Exist': 1}
 
 # output type of each module
 _module_output_type = {
     '_Find': 'att',
     '_Transform': 'att',
     '_And': 'att',
-    '_Describe': 'ans'}
+    '_Describe': 'ans',
+    '_Or': 'att',
+    '_Not': 'att',
+    '_Count': 'vector',
+    '_SameProperty': 'vector',
+    '_Break': 'array',
+    '_AttReduce': 'vector',
+    '_Compare': 'vector',
+    '_CompareReduce': 'vector',
+    '_CompareAtt': 'vector',
+    '_Combine': 'ans',
+    '_ExistAtt': 'ans',
+    '_Exist': 'ans'}
 
 INVALID_EXPR = 'INVALID_EXPR'
 # decoding validity: maintaining a state x of [#att, #ans, T_remain]
