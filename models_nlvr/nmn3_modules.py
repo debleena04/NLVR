@@ -70,7 +70,7 @@ class Modules:
         self.AttReduceModule(input_att, time_idx, batch_idx, reuse=False)
         self.CompareModule(input_vector, time_idx, batch_idx, reuse=False)
         self.CompareReduceModule(input_vector, input_vector, time_idx, batch_idx, reuse=False)
-        self.CompareAttModule(input_vector, input_vector, time_idx, batch_idx, reuse=False)
+        self.CompareAttModule(input_att, input_att, time_idx, batch_idx, reuse=False)
         self.CombineModule(input_vector, input_vector, input_vector, time_idx, batch_idx, reuse=False)
         self.ExistAttModule(input_vector, input_vector, input_vector, time_idx, batch_idx, reuse=False)
         self.ExistModule(input_vector, time_idx, batch_idx, reuse=False)
