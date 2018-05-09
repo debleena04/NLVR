@@ -59,6 +59,7 @@ class NMN3Model:
                 att_shape = image_feat_grid.get_shape().as_list()[1:-1] + [1]
                 # Forward declaration of module recursion
                 att_expr_decl = td.ForwardDeclaration(td.PyObjectType(), td.TensorType(att_shape))
+                vector_expr_decl = td.ForwardDeclaration(td.PyObjectType(), td.TensorType([None]))
                 # _Find
                 case_find = td.Record([('time_idx', td.Scalar(dtype='int32')),
                                        ('batch_idx', td.Scalar(dtype='int32'))])
@@ -74,17 +75,97 @@ class NMN3Model:
                                       ('time_idx', td.Scalar('int32')),
                                       ('batch_idx', td.Scalar('int32'))])
                 case_and = case_and >> td.Function(modules.AndModule)
+                #_Or
+                case_or = td.Record([('input_0', att_expr_decl()),
+                                      ('input_1', att_expr_decl()),
+                                      ('time_idx', td.Scalar('int32')),
+                                      ('batch_idx', td.Scalar('int32'))])
+                case_or = case_or >> td.Function(modules.OrModule)
+                #_Not
+                case_not = td.Record([('input_0', att_expr_decl()),
+                                      ('time_idx', td.Scalar('int32')),
+                                      ('batch_idx', td.Scalar('int32'))])
+                case_not = case_not >> td.Function(modules.NotModule)
                 # _Describe
                 case_describe = td.Record([('input_0', att_expr_decl()),
                                            ('time_idx', td.Scalar('int32')),
                                            ('batch_idx', td.Scalar('int32'))])
                 case_describe = case_describe >> \
                     td.Function(modules.DescribeModule)
-
+                #_Count
+                case_count = td.Record([('input_0', att_expr_decl()),
+                                      ('time_idx', td.Scalar('int32')),
+                                      ('batch_idx', td.Scalar('int32'))])
+                case_count = case_count >> td.Function(modules.CountModule)
+                #_SameProperty
+                case_sameproperty = td.Record([('input_0', att_expr_decl()),
+                                      ('input_1', att_expr_decl()),
+                                      ('time_idx', td.Scalar('int32')),
+                                      ('batch_idx', td.Scalar('int32'))])
+                case_sameproperty = case_sameproperty >> td.Function(modules.SamePropertyModule)
+                 #_Break
+                case_break = td.Record([('time_idx', td.Scalar('int32')),
+                                      ('batch_idx', td.Scalar('int32'))])
+                case_break = case_break >> td.Function(modules.BreakModule)
+                 #_AttReduce
+                case__att_reduce = td.Record([('input_0', att_expr_decl()),
+                                      ('time_idx', td.Scalar('int32')),
+                                      ('batch_idx', td.Scalar('int32'))])
+                case__att_reduce = case__att_reduce >> td.Function(modules.AttReduceModule)
+                #_Compare
+                case_compare = td.Record([('input_0', vector_expr_decl()),
+                                      ('time_idx', td.Scalar('int32')),
+                                      ('batch_idx', td.Scalar('int32'))])
+                case_compare = case_compare >> td.Function(modules.CompareModule)
+                #_CompareReduce
+                case_compare_reduce = td.Record([('input_0', vector_expr_decl()),
+                                      ('input_1', vector_expr_decl()),
+                                      ('time_idx', td.Scalar('int32')),
+                                      ('batch_idx', td.Scalar('int32'))])
+                case_compare_reduce = case_compare_reduce >> td.Function(modules.CompareReduceModule)
+                # _CompareAtt
+                case_compare_att = td.Record([('input_0', att_expr_decl()),
+                                      ('input_1', att_expr_decl()),
+                                      ('time_idx', td.Scalar('int32')),
+                                      ('batch_idx', td.Scalar('int32'))])
+                case_compare_att = case_compare_att >> td.Function(modules.CompareAttModule)
+                #_Combine
+                case_combine = td.Record([('input_0', vector_expr_decl()),
+                                      ('input_1', vector_expr_decl()),
+                                      ('input_2', vector_expr_decl()),
+                                      ('time_idx', td.Scalar('int32')),
+                                      ('batch_idx', td.Scalar('int32'))])
+                case_combine = case_combine >> td.Function(modules.CombineModule)
+                #_ExistAtt
+                case_exist_att = td.Record([('input_0', vector_expr_decl()),
+                                      ('input_1', vector_expr_decl()),
+                                      ('input_2', vector_expr_decl()),
+                                      ('time_idx', td.Scalar('int32')),
+                                      ('batch_idx', td.Scalar('int32'))])
+                case_exist_att = case_exist_att >> td.Function(modules.ExistAttModule)
+                #_Exist
+                case_exist = td.Record([('input_0', vector_expr_decl()),
+                                      ('time_idx', td.Scalar('int32')),
+                                      ('batch_idx', td.Scalar('int32'))])
+                case_exist = case_exist >> td.Function(modules.ExistModule)
+                
+                
                 recursion_cases = td.OneOf(td.GetItem('module'), {
                     '_Find': case_find,
                     '_Transform': case_transform,
-                    '_And': case_and})
+                    '_And': case_and,
+                    '_Or': case_or,
+                    '_Not': case_not,
+                    '_Count': case_count,
+                    '_SameProperty': case_sameproperty,
+                    '_Break': case_break,
+                    '_AttReduce': case_att_reduce,
+                    '_Compare': case_compare,
+                    '_CompareReduce': case_compare_reduce,
+                    '_CompareAtt': case_compare_att,
+                    '_Combine': case_combine,
+                    '_ExistAtt': case_exist_att,
+                    '_Exist': case_exist})
                 att_expr_decl.resolve_to(recursion_cases)
 
                 # For invalid expressions, define a dummy answer
