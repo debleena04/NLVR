@@ -97,7 +97,7 @@ class NMN3Model:
                                       ('time_idx', td.Scalar('int32')),
                                       ('batch_idx', td.Scalar('int32'))])
                 case_count = case_count >> td.Function(modules.CountModule)
-                #_SameProperty
+                #_Find_SameProperty
                 case_sameproperty = td.Record([('input_0', att_expr_decl()),
                                       ('input_1', att_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
@@ -157,7 +157,7 @@ class NMN3Model:
                     '_Or': case_or,
                     '_Not': case_not,
                     '_Count': case_count,
-                    '_SameProperty': case_sameproperty,
+                    '_Find_SameProperty': case_sameproperty,
                     '_Break': case_break,
                     '_AttReduce': case_att_reduce,
                     '_Compare': case_compare,
