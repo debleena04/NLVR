@@ -455,7 +455,7 @@ class Modules:
                 #scores = fc('fc_scores', att_reduced, output_dim=map_dim)
         return att_reduced
     
-    def CompareModule(self, input0, time_idx, batch_idx, map_dim=500, scope='CompareModule',
+    def CompareModule(self, input_0, time_idx, batch_idx, map_dim=500, scope='CompareModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # input0 is the vector output from Count module
@@ -473,12 +473,12 @@ class Modules:
         #   2. L2-normalization
         #   3. Linear classification
         text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
-        vector_mapped = fc('input_vector0',input0, output_dim = map_dim)
+        vector_mapped = fc('input_vector_0',input_0, output_dim = map_dim)
         scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=map_dim)
         #scores = text_param_mapped + vector_mapped
         return scores
    
-    def CompareReduceModule(self, input0, input1, time_idx, batch_idx, map_dim=500, scope='CompareReduceModule',
+    def CompareReduceModule(self, input_0, input_1, time_idx, batch_idx, map_dim=500, scope='CompareReduceModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # input0 is the vector output from Count module
@@ -496,10 +496,10 @@ class Modules:
         #   3. Linear classification
         #vector0_mapped = fc('input_vector0',input0, output_dim = map_dim)
         #vector1_mapped = fc('input_vector1',input1, output_dim = map_dim)
-        scores = fc('fc_eltwise', input0 + input1, output_dim=map_dim)
+        scores = fc('fc_eltwise', input_0 + input_1, output_dim=map_dim)
         return scores
     
-    def CompareAttModule(self, input0, input1, time_idx, batch_idx, map_dim=500, scope='CompareAttModule',
+    def CompareAttModule(self, input_0, input_1, time_idx, batch_idx, map_dim=500, scope='CompareAttModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # input0 is the vector output from Count module
@@ -517,15 +517,15 @@ class Modules:
         #   3. Linear classification
         N = tf.shape(time_idx)[0]
         att_feat0_mapped = tf.reshape(
-                    fc('fc_att', input0, output_dim=map_dim),
+                    fc('fc_att', input_0, output_dim=map_dim),
                     to_T([N, map_dim]))
         att_feat1_mapped = tf.reshape(
-                    fc('fc_att', input1, output_dim=map_dim),
+                    fc('fc_att', input_1, output_dim=map_dim),
                     to_T([N, map_dim]))
         scores = fc('fc_eltwise', att_feat0_mapped + att_feat1_mapped, output_dim=map_dim)
         return scores
     
-    def CombineModule(self, input0, input1, input2, time_idx, batch_idx, map_dim=500, scope='CombineModule',
+    def CombineModule(self, input_0, input_1, input_2, time_idx, batch_idx, map_dim=500, scope='CombineModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # input0 is the vector output to be combined
@@ -548,13 +548,13 @@ class Modules:
         text_param_mapped = fc('fc_text', text_param, output_dim=3)
         text_param_softmax = tf.nn.softmax(text_param_mapped)
         with tf.variable_scope('token_prediction'):
-                w_y = tf.get_variable('weights', [len(input0),1],
+                w_y = tf.get_variable('weights', [len(input_0),1],
                     initializer=tf.contrib.layers.xavier_initializer())
                 b_y = tf.get_variable('biases', 1,
                     initializer=tf.constant_initializer(0.))
-                input_0_mapped = tf.sigmoid(tf.nn.xw_plus_b(input0, w_y, b_y))
-                input_1_mapped = tf.sigmoid(tf.nn.xw_plus_b(input1, w_y, b_y))
-                input_2_mapped = tf.sigmoid(tf.nn.xw_plus_b(input2, w_y, b_y))
+                input_0_mapped = tf.sigmoid(tf.nn.xw_plus_b(input_0, w_y, b_y))
+                input_1_mapped = tf.sigmoid(tf.nn.xw_plus_b(input_1, w_y, b_y))
+                input_2_mapped = tf.sigmoid(tf.nn.xw_plus_b(input_2, w_y, b_y))
                 scores_matrix = [tf.miminum(input_0_mapped, input_1_mapped, input_2_mapped),
                   tf.maximum(input_0_mapped, input_1_mapped, input_2_mapped),
                   tf.maximum(tf.minimum(input_0_mapped,input_1_mapped), tf.minimum(input_0_mapped,input_2_mapped), tf.minimum(input_2_mapped,input_1_mapped))]
@@ -562,7 +562,7 @@ class Modules:
                 scores = tf.convert_to_tensor([score,1-score])
         return scores
     
-    def ExistAttModule(self, input0, input1, input2, time_idx, batch_idx, map_dim=500, scope='ExistAttModule',
+    def ExistAttModule(self, input_0, input_1, input_2, time_idx, batch_idx, map_dim=500, scope='ExistAttModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # input0 is the attention output to be combined
@@ -585,13 +585,13 @@ class Modules:
         text_param_mapped = fc('fc_text', text_param, output_dim=3)
         text_param_softmax = tf.nn.softmax(text_param_mapped)
         with tf.variable_scope('token_prediction'):
-                w_y = tf.get_variable('weights', [len(input0),1],
+                w_y = tf.get_variable('weights', [len(input_0),1],
                     initializer=tf.contrib.layers.xavier_initializer())
                 b_y = tf.get_variable('biases', 1,
                     initializer=tf.constant_initializer(0.))
-                input_0_mapped = tf.sigmoid(tf.nn.xw_plus_b(input0, w_y, b_y))
-                input_1_mapped = tf.sigmoid(tf.nn.xw_plus_b(input1, w_y, b_y))
-                input_2_mapped = tf.sigmoid(tf.nn.xw_plus_b(input2, w_y, b_y))
+                input_0_mapped = tf.sigmoid(tf.nn.xw_plus_b(input_0, w_y, b_y))
+                input_1_mapped = tf.sigmoid(tf.nn.xw_plus_b(input_1, w_y, b_y))
+                input_2_mapped = tf.sigmoid(tf.nn.xw_plus_b(input_2, w_y, b_y))
                 scores_matrix = [tf.miminum(input_0_mapped, input_1_mapped, input_2_mapped),
                   tf.maximum(input_0_mapped, input_1_mapped, input_2_mapped),
                   tf.maximum(tf.minimum(input_0_mapped,input_1_mapped), tf.minimum(input_0_mapped,input_2_mapped), tf.minimum(input_2_mapped,input_1_mapped))]
