@@ -162,10 +162,7 @@ class NMN3Model:
                     '_AttReduce': case_att_reduce,
                     '_Compare': case_compare,
                     '_CompareReduce': case_compare_reduce,
-                    '_CompareAtt': case_compare_att,
-                    '_Combine': case_combine,
-                    '_ExistAtt': case_exist_att,
-                    '_Exist': case_exist})
+                    '_CompareAtt': case_compare_att})
                 att_expr_decl.resolve_to(recursion_cases)
 
                 # For invalid expressions, define a dummy answer
@@ -173,6 +170,9 @@ class NMN3Model:
                 dummy_scores = td.Void() >> td.FromTensor(np.zeros(num_choices, np.float32))
                 output_scores = td.OneOf(td.GetItem('module'), {
                     '_Describe': case_describe,
+                    '_Combine': case_combine,
+                    '_ExistAtt': case_exist_att,
+                    '_Exist': case_exist,
                     INVALID_EXPR: dummy_scores})
 
                 # compile and get the output scores
