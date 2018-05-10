@@ -6,7 +6,7 @@ import tensorflow_fold as td
 from tensorflow import convert_to_tensor as to_T
 
 # the number of attention input to each module
-_module_input_num = {
+_module_att_input_num = {
     '_Find': 0,
     '_Transform': 1,
     '_And': 2,
@@ -15,11 +15,16 @@ _module_input_num = {
     '_Not': 1,
     '_Count': 1,
     '_Find_SameProperty': 2,
-    '_Break': 0,
     '_AttReduce': 1,
+    '_CompareAtt': 2}
+
+# the number of vector input to each module
+_module_vector_input_num = {
+    '_Count': 0,
+    '_AttReduce': 0,
+    '_CompareAtt': 0,
     '_Compare': 1,
     '_CompareReduce': 1,
-    '_CompareAtt': 2,
     '_Combine': 3,
     '_ExistAtt': 3,
     '_Exist': 1}
@@ -34,7 +39,6 @@ _module_output_type = {
     '_Not': 'att',
     '_Count': 'vector',
     '_Find_SameProperty': 'vector',
-    '_Break': 'array',
     '_AttReduce': 'vector',
     '_Compare': 'vector',
     '_CompareReduce': 'vector',
@@ -44,7 +48,7 @@ _module_output_type = {
     '_Exist': 'ans'}
 
 INVALID_EXPR = 'INVALID_EXPR'
-# decoding validity: maintaining a state x of [#att, #ans, T_remain]
+# decoding validity: maintaining a state x of [#att, #vector, #ans, T_remain]
 # when T_remain is T_decoder when decoding the first module token
 # a token s can be predicted iff all(<x, w_s> - b_s >= 0)
 # the validity token list is
@@ -52,9 +56,10 @@ INVALID_EXPR = 'INVALID_EXPR'
 # the state transition matrix is P, so the state update is X += S P,
 # where S is the predicted tokens (one-hot vectors)
 def _build_validity_mats(module_names):
-    state_size = 3
+    module_names = module_names.remove('_Break')
+    state_size = 4
     num_vocab_nmn = len(module_names)
-    num_constraints = 4
+    num_constraints = 8
     P = np.zeros((num_vocab_nmn, state_size), np.int32)
     W = np.zeros((state_size, num_vocab_nmn, num_constraints), np.int32)
     b = np.zeros((num_vocab_nmn, num_constraints), np.int32)
@@ -62,23 +67,35 @@ def _build_validity_mats(module_names):
     # collect the input and output numbers of each module
     att_in_nums = np.zeros(num_vocab_nmn)
     att_out_nums = np.zeros(num_vocab_nmn)
+    vector_in_nums = np.zeros(num_vocab_nmn)
+    vector_out_nums = np.zeros(num_vocab_nmn)
     ans_out_nums = np.zeros(num_vocab_nmn)
     for n_s, s in enumerate(module_names):
         if s != '<eos>':
-            att_in_nums[n_s] = _module_input_num[s]
-            att_out_nums[n_s] = _module_output_type[s] == 'att'
-            ans_out_nums[n_s] = _module_output_type[s] == 'ans'
+            if s in _module_att_input_num.keys():
+                att_in_nums[n_s] = _module_att_input_num[s]
+                att_out_nums[n_s] = _module_output_type[s] == 'att'
+                ans_out_nums[n_s] = _module_output_type[s] == 'ans'
+            if s in _module_vector_input_num.keys():
+                vector_in_nums[n_s] = _module_vector_input_num[s]
+                vector_out_nums[n_s] = _module_output_type[s] == 'vector'
+                ans_out_nums[n_s] = _module_output_type[s] == 'ans'
+                
     # construct the trasition matrix P
     for n_s, s in enumerate(module_names):
         P[n_s, 0] = att_out_nums[n_s] - att_in_nums[n_s]
-        P[n_s, 1] = ans_out_nums[n_s]
-        P[n_s, 2] = -1
+        P[n_s, 1] = vector_out_nums[n_s] - vector_in_nums[n_s]
+        P[n_s, 2] = ans_out_nums[n_s]
+        P[n_s, 3] = -1
     # construct the validity W and b
     att_absorb_nums = (att_in_nums - att_out_nums)
-    max_att_absorb_nonans = np.max(att_absorb_nums * (ans_out_nums == 0))
-    max_att_absorb_ans = np.max(att_absorb_nums * (ans_out_nums != 0))
+    max_att_absorb_nonans = np.max(att_absorb_nums * (ans_out_nums == 0 and vector_out_nums == 0))
+    max_att_absorb_ans = np.max(att_absorb_nums * (ans_out_nums != 0 and vector_out_nums == 0))
+    vector_absorb_nums = (vector_in_nums - vector_out_nums)
+    max_vector_absorb_nonans = np.max(att_absorb_nums * (ans_out_nums == 0 and att_out_nums == 0))
+    max_vector_absorb_ans = np.max(att_absorb_nums * (ans_out_nums != 0 and att_out_nums == 0))
     for n_s, s in enumerate(module_names):
-        if s != '<eos>':
+        if s != '<eos>' and s in _module_att_input_num.keys() :#att case
             # constraint: a non-<eos> module can be outputted iff all the following holds
             # * 0) there's enough att in the stack
             #      #att >= att_in_nums[n_s]
@@ -93,12 +110,12 @@ def _build_validity_mats(module_names):
                 W[0, n_s, 1] = -1
                 b[n_s, 1] = -att_in_nums[n_s]
             else:
-                W[2, n_s, 1] = 1
+                W[3, n_s, 1] = 1
                 b[n_s, 1] = 3
             # * 2) there's no answer in the stack (otherwise <eos> only)
             #      #ans <= 0
             #      -#ans >= 0
-            W[1, n_s, 2] = -1
+            W[2, n_s, 2] = -1
             # * 3) there's enough time to consume the all attentions, output answer plus <eos>
             #      3.1) for non-answer modules, we already have T_remain>= 3 from constraint 2
             #           In maximum (T_remain-3) further steps
@@ -111,13 +128,50 @@ def _build_validity_mats(module_names):
             #           hence no further constraints here
             if ans_out_nums[n_s] == 0:
                 W[0, n_s, 3] = -1
-                W[2, n_s, 3] = max_att_absorb_nonans
+                W[3, n_s, 3] = max_att_absorb_nonans
                 b[n_s, 3] = 3*max_att_absorb_nonans - max_att_absorb_ans - att_absorb_nums[n_s]
+                
+        if s != '<eos>' and s in _module_vector_input_num.keys() : #vector case
+            # constraint: a non-<eos> module can be outputted iff all the following holds
+            # * 0) there's enough att in the stack
+            #      #vector >= vector_in_nums[n_s]
+            W[1, n_s, 4] = 1
+            b[n_s, 4] = vector_in_nums[n_s]
+            # * 1) for answer modules, there's no extra att in the stack
+            #      #vector <= vector_in_nums[n_s]
+            #      -#vector >= -vector_in_nums[n_s]
+            #      for non-answer modules, T_remain >= 3
+            #      (the last two has to be AnswerType and <eos>)
+            if ans_out_nums[n_s] != 0:
+                W[1, n_s, 5] = -1
+                b[n_s, 5] = -vector_in_nums[n_s]
+            else:
+                W[3, n_s, 5] = 1
+                b[n_s, 5] = 3
+            # * 2) there's no answer in the stack (otherwise <eos> only)
+            #      #ans <= 0
+            #      -#ans >= 0
+            W[2, n_s, 6] = -1
+            # * 3) there's enough time to consume the all attentions, output answer plus <eos>
+            #      3.1) for non-answer modules, we already have T_remain>= 3 from constraint 2
+            #           In maximum (T_remain-3) further steps
+            #           (plus 3 steps for this, ans, <eos>) to consume atts
+            #           (T_remain-3) * max_vector_absorb_nonans + max_vector_absorb_ans + vector_absorb_nums[n_s] >= #vector
+            #           T_remain*MANA - #vector >= 3*MANA - MAA - A[s]
+            #           - #vector + MANA * T_remain >= 3*MANA - MAA - A[s]
+            #      3.2) for answer modules, if it can be decoded then constraint 0&1 ensures
+            #           that there'll be no att left in stack after decoding this answer,
+            #           hence no further constraints here
+            if ans_out_nums[n_s] == 0:
+                W[1, n_s, 7] = -1
+                W[3, n_s, 7] = max_vector_absorb_nonans
+                b[n_s, 7] = 3*max_vector_absorb_nonans - max_vector_absorb_ans - vector_absorb_nums[n_s]
+                
         else:  # <eos>-case
             # constraint: a <eos> token can be outputted iff all the following holds
             # * 0) there's ans in the stack
             #      #ans >= 1
-            W[1, n_s, 0] = 1
+            W[2, n_s, 0] = 1
             b[n_s, 0] = 1
 
     return P, W, b
@@ -187,8 +241,12 @@ class Assembler:
             expr = {'module': module_name,
                     'output_type': _module_output_type[module_name],
                     'time_idx': t, 'batch_idx': batch_idx}
-
-            input_num = _module_input_num[module_name]
+            if module_name == '_Break':
+                input_num = 0
+            if module_name in _module_att_input_num.keys():
+                input_num = _module_att_input_num[module_name]
+            else: 
+                input_num = _module_vector_input_num[module_name]
             # Check if there are enough input in the stack
             if len(decoding_stack) < input_num:
                 # Invalid expression. Not enough input.
@@ -212,7 +270,7 @@ class Assembler:
         result = decoding_stack[0]
         # The result type should be answer, not attention
         if result['output_type'] != 'ans':
-            return self._invalid_expr(layout_tokens, 'result type must be ans, not att')
+            return self._invalid_expr(layout_tokens, 'result type must be ans')
         return result
 
     def assemble(self, layout_tokens_batch):
