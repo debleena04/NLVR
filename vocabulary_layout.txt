@@ -2,4 +2,16 @@ _Find
 _Transform
 _And
 _Describe
+_Or
+_Not
+_Count
+_Find_SameProperty
+_break
+_AttReduce
+_Compare
+_CompareReduce
+_CompareAtt
+_Combine
+_ExistAtt
+_Exist
 <eos>
