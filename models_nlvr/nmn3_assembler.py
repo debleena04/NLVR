@@ -89,11 +89,11 @@ def _build_validity_mats(module_names):
         P[n_s, 3] = -1
     # construct the validity W and b
     att_absorb_nums = (att_in_nums - att_out_nums)
-    max_att_absorb_nonans = np.max(att_absorb_nums * (ans_out_nums == 0 and vector_out_nums == 0))
-    max_att_absorb_ans = np.max(att_absorb_nums * (ans_out_nums != 0 and vector_out_nums == 0))
+    max_att_absorb_nonans = np.max(att_absorb_nums * np.logical_and(ans_out_nums == 0,vector_out_nums == 0))
+    max_att_absorb_ans = np.max(att_absorb_nums * np.logical_and(ans_out_nums != 0, vector_out_nums == 0))
     vector_absorb_nums = (vector_in_nums - vector_out_nums)
-    max_vector_absorb_nonans = np.max(att_absorb_nums * (ans_out_nums == 0 and att_out_nums == 0))
-    max_vector_absorb_ans = np.max(att_absorb_nums * (ans_out_nums != 0 and att_out_nums == 0))
+    max_vector_absorb_nonans = np.max(att_absorb_nums * np.logical_and(ans_out_nums == 0, att_out_nums == 0))
+    max_vector_absorb_ans = np.max(att_absorb_nums * np.logical_and(ans_out_nums != 0, att_out_nums == 0))
     for n_s, s in enumerate(module_names):
         if s != '<eos>' and s in _module_att_input_num.keys() :#att case
             # constraint: a non-<eos> module can be outputted iff all the following holds
@@ -209,11 +209,11 @@ class Assembler:
                 self.CompareAtt_idx = n_s    
             elif self.module_names[n_s] == '_CompareReduce':
                 self.CompareReduce_idx = n_s
-             elif self.module_names[n_s] == '_Combine':
+            elif self.module_names[n_s] == '_Combine':
                 self.Combine_idx = n_s
-             elif self.module_names[n_s] == '_Exist':
+            elif self.module_names[n_s] == '_Exist':
                 self.Exist_idx = n_s
-             elif self.module_names[n_s] == '_ExistAtt':
+            elif self.module_names[n_s] == '_ExistAtt':
                 self.ExistAtt_idx = n_s
             else:
                 self.EOS_idx = n_s
@@ -287,7 +287,7 @@ class Assembler:
             # Get the input from stack
             for n_input in range(input_num-1, -1, -1):
                 stack_top = decoding_stack.pop()
-                if stack_top['module] == '_Break':
+                if stack_top['module'] == '_Break':
                     return self._invalid_expr(layout_tokens, 'input incompatible for ' + module_name)
                 if stack_top['module'] in _module_att_input_num.keys():
                     if stack_top['output_type'] != 'att':
