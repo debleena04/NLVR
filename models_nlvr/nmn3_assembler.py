@@ -183,9 +183,41 @@ class Assembler:
             self.module_names = [s.strip() for s in f.readlines()]
         # find the index of <eos>
         for n_s in range(len(self.module_names)):
-            if self.module_names[n_s] == '<eos>':
+            if self.module_names[n_s] == '_Find':
+                self.Find_idx = n_s
+            elif self.module_names[n_s] == '_Transform':
+                self.Transform_idx = n_s
+            elif self.module_names[n_s] == '_And':
+                self.And_idx = n_s
+            elif self.module_names[n_s] == '_Answer':
+                self.Answer_idx = n_s
+            elif self.module_names[n_s] == '_Or':
+                self.Or_idx = n_s    
+            elif self.module_names[n_s] == '_Not':
+                self.Not_idx = n_s    
+            elif self.module_names[n_s] == '_Count':
+                self.Count_idx = n_s
+            elif self.module_names[n_s] == '_Break':
+                self.Break_idx = n_s    
+            elif self.module_names[n_s] == '_Find_SameProperty':
+                self.Find_SameProperty_idx = n_s    
+            elif self.module_names[n_s] == '_AttReduce':
+                self.AttReduce_idx = n_s    
+            elif self.module_names[n_s] == '_Compare':
+                self.Compare_idx = n_s    
+            elif self.module_names[n_s] == '_CompareAtt':
+                self.CompareAtt_idx = n_s    
+            elif self.module_names[n_s] == '_CompareReduce':
+                self.CompareReduce_idx = n_s
+             elif self.module_names[n_s] == '_Combine':
+                self.Combine_idx = n_s
+             elif self.module_names[n_s] == '_Exist':
+                self.Exist_idx = n_s
+             elif self.module_names[n_s] == '_ExistAtt':
+                self.ExistAtt_idx = n_s
+            else:
                 self.EOS_idx = n_s
-                break
+            break
         # build a dictionary from module name to token index
         self.name2idx_dict = {name: n_s for n_s, name in enumerate(self.module_names)}
         self.num_vocab_nmn = len(self.module_names)
