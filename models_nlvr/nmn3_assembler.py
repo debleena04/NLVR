@@ -255,9 +255,16 @@ class Assembler:
             # Get the input from stack
             for n_input in range(input_num-1, -1, -1):
                 stack_top = decoding_stack.pop()
-                if stack_top['output_type'] != 'att':
-                    # Invalid expression. Input must be attention
+                if stack_top['module] == '_Break':
                     return self._invalid_expr(layout_tokens, 'input incompatible for ' + module_name)
+                if stack_top['module'] in _module_att_input_num.keys():
+                    if stack_top['output_type'] != 'att':
+                        # Invalid expression. Input must be attention
+                        return self._invalid_expr(layout_tokens, 'input incompatible for ' + module_name)
+                else:
+                    if stack_top['output_type'] != 'vector':
+                        # Invalid expression. Input must be vector
+                        return self._invalid_expr(layout_tokens, 'input incompatible for ' + module_name)
                 expr['input_%d' % n_input] = stack_top
 
             decoding_stack.append(expr)
