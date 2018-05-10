@@ -327,7 +327,7 @@ class Modules:
         att_grid_reshape= np.reshape(att_grid_reshape,(1,shape[0],shape[-1],1))
         return att_grid_reshape
     
-    def CountModule(self, input_0, time_idx, batch_idx,
+    def CountModule(self, input_0, time_idx, batch_idx,map_dim=500,
         scope='CountModule', reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
 
@@ -351,7 +351,7 @@ class Modules:
         return scores
     
     def SamePropertyModule(self, input_0, input_1, time_idx, batch_idx,
-        map_dim=250, scope='SamePropertyModule', reuse=True):
+        map_dim=500, scope='SamePropertyModule', reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
 
         image_feat_grid = self._slice_image_feat_grid(batch_idx)
