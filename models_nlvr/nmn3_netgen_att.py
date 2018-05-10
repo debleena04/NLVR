@@ -283,7 +283,7 @@ class AttentionSeq2Seq:
                         infer_shape=False)
                     token_prob_array = tf.TensorArray(dtype=tf.float32, size=T_max,
                         infer_shape=False)
-                    init_decoding_state = tf.tile(to_T([[0, 0, T_max]], dtype=tf.int32), to_T([N, 1]))
+                    init_decoding_state = tf.tile(to_T([[0, 0, 0, T_max]], dtype=tf.int32), to_T([N, 1]))
                     att_array = tf.TensorArray(dtype=tf.float32, size=T_max,
                         infer_shape=False)
                     next_loop_state = (predicted_token_array,
