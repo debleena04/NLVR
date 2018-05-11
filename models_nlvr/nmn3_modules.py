@@ -315,17 +315,17 @@ class Modules:
         #
         # Implementation:
         #   Take the 1 - attention value
-        scaler = MinMaxScaler()
-        att_fit = scaler.fit(input_0)
-        att_normalised = scaler.transform(input_0)
+        min_d = tf.reduce_min(input_0)
+        max_d = tf.reduce_max(input_0)
+        att_normalised = (input_0 - min_d) / (max_d - min_d)
         with tf.variable_scope(self.module_variable_scope):
             with tf.variable_scope(scope, reuse=reuse):
                 att_grid = 1 - att_normalised
-                
-        att_grid_reshape = scaler.inverse_transform(att_grid)
-        shape=list(att_grid_reshape.shape)
-        att_grid_reshape= np.reshape(att_grid_reshape,(1,shape[0],shape[-1],1))
+
+        att_grid_reshape = att_normalised * (max_d - min_d) + min_d
         return att_grid_reshape
+
+       
     
     def CountModule(self, input_0, time_idx, batch_idx,map_dim=500,
         scope='CountModule', reuse=True):
