@@ -60,7 +60,7 @@ class NMN3Model:
                 # Forward declaration of module recursion
                 shape_att = [[3],att_shape]
                 flatten_shape_att = [item for sublist in shape_att for item in sublist]
-                att_expr_decl = td.ForwardDeclaration(td.PyObjectType(), td.TensorType(shape_att))
+                att_expr_decl = td.ForwardDeclaration(td.PyObjectType(), td.TensorType(flatten_shape_att))
                 vector_expr_decl = td.ForwardDeclaration(td.PyObjectType(), td.TensorType([3,map_dim]))
                 # _Find
                 case_find = td.Record([('time_idx', td.Scalar(dtype='int32')),
