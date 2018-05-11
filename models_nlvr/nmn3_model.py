@@ -58,8 +58,10 @@ class NMN3Model:
                 # Recursion of modules
                 att_shape = image_feat_grid.get_shape().as_list()[1:-1] + [1]
                 # Forward declaration of module recursion
-                att_expr_decl = td.ForwardDeclaration(td.PyObjectType(), td.TensorType(att_shape))
-                vector_expr_decl = td.ForwardDeclaration(td.PyObjectType(), td.TensorType([None]))
+                shape_att = [[3],att_shape]
+                flatten_shape_att = [item for sublist in shape_att for item in sublist]
+                att_expr_decl = td.ForwardDeclaration(td.PyObjectType(), td.TensorType(shape_att))
+                vector_expr_decl = td.ForwardDeclaration(td.PyObjectType(), td.TensorType([3,map_dim]))
                 # _Find
                 case_find = td.Record([('time_idx', td.Scalar(dtype='int32')),
                                        ('batch_idx', td.Scalar(dtype='int32'))])
