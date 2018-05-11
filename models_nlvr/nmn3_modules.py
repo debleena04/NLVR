@@ -10,6 +10,7 @@ from models_nlvr.empty_safe_conv import empty_safe_1x1_conv as _1x1_conv
 from models_nlvr.empty_safe_conv import empty_safe_conv as _conv
 
 flag = False
+
 def add_spatial_coordinate_map(image_feat_grid):
     image_feat_shape = tf.shape(image_feat_grid)
     N = image_feat_shape[0]
