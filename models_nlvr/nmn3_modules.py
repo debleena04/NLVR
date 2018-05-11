@@ -102,7 +102,7 @@ class Modules:
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
 
-        image_feat_grid = self._slice_image_feat_grid(batch_idx)
+        
         text_param = self._slice_word_vecs(time_idx, batch_idx)
         # Mapping: image_feat_grid x text_param -> att_grid
         # Input:
@@ -115,27 +115,65 @@ class Modules:
         #   1. Elementwise multiplication between image_feat_grid and text_param
         #   2. L2-normalization
         #   3. Linear classification
-        with tf.variable_scope(self.module_variable_scope):
-            with tf.variable_scope(scope, reuse=reuse):
-                image_shape = tf.shape(image_feat_grid)
-                N = tf.shape(time_idx)[0]
-                H = image_shape[1]
-                W = image_shape[2]
-                D_im = image_feat_grid.get_shape().as_list()[-1]
-                D_txt = text_param.get_shape().as_list()[-1]
+        if flag == True:
+            image_feat_grid = tf.pad(input_0, tf.convert_to_tensor([[0,0],[0,0],[1,1],[0,0]]),'CONSTANT')
+            image_feat_grid_arr=[]
+            image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(image_feat_grid, num_or_size_splits=3, axis=2)
+            image_feat_grid_arr.append(image_feat_grid_arr0)
+            image_feat_grid_arr.append(image_feat_grid_arr1)
+            image_feat_grid_arr.append(image_feat_grid_arr2)
+            att_grid_arr = []
+            for i in range(3):
+                with tf.variable_scope(self.module_variable_scope):
+                    with tf.variable_scope(scope, reuse=reuse):
+                        image_shape = tf.shape(image_feat_grid[i])
+                        N = tf.shape(time_idx)[0]
+                        H = image_shape[1]
+                        W = image_shape[2]
+                        D_im = image_feat_grid.get_shape().as_list()[-1]
+                        D_txt = text_param.get_shape().as_list()[-1]
 
-                # image_feat_mapped has shape [N, H, W, map_dim]
-                image_feat_mapped = _1x1_conv('conv_image', image_feat_grid,
+                        # image_feat_mapped has shape [N, H, W, map_dim]
+                        image_feat_mapped = _1x1_conv('conv_image', image_feat_grid,
                                               output_dim=map_dim)
 
-                text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
-                text_param_mapped = tf.reshape(text_param_mapped, to_T([N, 1, 1, map_dim]))
+                        text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
+                        text_param_mapped = tf.reshape(text_param_mapped, to_T([N, 1, 1, map_dim]))
 
-                eltwise_mult = tf.nn.l2_normalize(image_feat_mapped * text_param_mapped, 3)
-                att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1)
+                        eltwise_mult = tf.nn.l2_normalize(image_feat_mapped * text_param_mapped, 3)
+                        att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1)
 
-        att_grid.set_shape(self.att_shape)
-        return att_grid
+                att_grid.set_shape(self.att_shape)
+                att_grid = tf.expand_dims(att_grid,0)
+                att_grid = tf.tile(att_grid,[1,1,1,3,1])
+                att_grid_arr.append(att_grid)
+            return att_grid_arr
+            
+        if flag == False:
+            image_feat_grid = self._slice_image_feat_grid(batch_idx)
+            with tf.variable_scope(self.module_variable_scope):
+                with tf.variable_scope(scope, reuse=reuse):
+                    image_shape = tf.shape(image_feat_grid)
+                    N = tf.shape(time_idx)[0]
+                    H = image_shape[1]
+                    W = image_shape[2]
+                    D_im = image_feat_grid.get_shape().as_list()[-1]
+                    D_txt = text_param.get_shape().as_list()[-1]
+
+                    # image_feat_mapped has shape [N, H, W, map_dim]
+                    image_feat_mapped = _1x1_conv('conv_image', image_feat_grid,
+                                              output_dim=map_dim)
+
+                    text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
+                    text_param_mapped = tf.reshape(text_param_mapped, to_T([N, 1, 1, map_dim]))
+
+                    eltwise_mult = tf.nn.l2_normalize(image_feat_mapped * text_param_mapped, 3)
+                    att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1)
+
+            att_grid.set_shape(self.att_shape)
+            att_grid = tf.expand_dims(att_grid,0)
+            att_grid = tf.tile(att_grid,[3,1,1,1,1])
+            return att_grid
 
     def TransformModule(self, input_0, time_idx, batch_idx, kernel_size=5,
         map_dim=500, scope='TransformModule', reuse=True):
@@ -408,8 +446,7 @@ class Modules:
         reuse=True):
         # In TF Fold, batch_idx is [N_batch, 1] tensors
         
-        image_feat = self._slice_image_feat_grid(batch_idx)
-        image_feat_grid = tf.pad(image_feat, [[0,0],[0,0],[1,1],[0,0]],'CONSTANT')
+        
         # Mapping: image_feat_grid -> image_feat_array
         # Input:
         #   image_feat_grid: [N, H, W, D_im]
@@ -419,20 +456,9 @@ class Modules:
         #
         # Implementation:
         #   1. Break the feature grid into 3 feature array anfd concat them into one single array
-        with tf.variable_scope(self.module_variable_scope):
-            with tf.variable_scope(scope, reuse=reuse):
-                image_shape = tf.shape(image_feat_grid)
-                N = tf.Session().run(image_shape[0])
-                H = tf.Session().run(image_shape[1])
-                W = tf.Session().run(image_shape[2])
-                D_im = image_feat_grid.get_shape().as_list()[-1]
-       
-        image_feat_grid1 = tf.Session().run(image_feat_grid[:,:,:W/3,:])
-        image_feat_grid2 = tf.Session().run(image_feat_grid[:,:,W/3:2*W/3,:])
-        image_feat_grid3 = tf.Session().run(image_feat_grid[:,:,2*W/3:W,:] )
-        image_feat_array = np.vstack((image_feat_grid1, image_feat_grid2, image_feat_grid3)) 
+        flag = True 
             
-        return image_feat_array
+        
     
     def AttReduceModule(self, input_0, time_idx, batch_idx, map_dim=500,
         scope='AttReduceModule', reuse=True):
