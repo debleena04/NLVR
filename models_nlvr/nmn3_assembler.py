@@ -56,7 +56,7 @@ INVALID_EXPR = 'INVALID_EXPR'
 # the state transition matrix is P, so the state update is X += S P,
 # where S is the predicted tokens (one-hot vectors)
 def _build_validity_mats(module_names):
-    module_names = module_names.remove('_Break')
+    #module_names = module_names.remove('_Break')
     state_size = 4
     num_vocab_nmn = len(module_names)
     num_constraints = 8
