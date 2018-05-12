@@ -148,7 +148,7 @@ class NMN3Model:
                 case_exist = case_exist >> td.Function(modules.ExistModule)
                 
                 
-                recursion_cases = td.OneOf(td.GetItem('module'), {
+                recursion_cases_att = td.OneOf(td.GetItem('module'), {
                     '_Find': case_find,
                     '_Transform': case_transform,
                     '_And': case_and,
@@ -158,10 +158,12 @@ class NMN3Model:
                     '_Find_SameProperty': case_sameproperty,
                     '_Break': case_break,
                     '_AttReduce': case_att_reduce,
-                    '_Compare': case_compare,
-                    '_CompareReduce': case_compare_reduce,
                     '_CompareAtt': case_compare_att})
-                att_expr_decl.resolve_to(recursion_cases)
+                att_expr_decl.resolve_to(recursion_cases_att)
+                recursion_cases_vector = td.OneOf(td.GetItem('module'), {
+                    '_Compare': case_compare,
+                    '_CompareReduce': case_compare_reduce})
+                vector_expr_decl.resolve_to(recursion_cases_vector)
 
                 # For invalid expressions, define a dummy answer
                 # so that all answers have the same form
