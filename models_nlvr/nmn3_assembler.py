@@ -25,8 +25,8 @@ _module_vector_input_num = {
     '_CompareAtt': 0,
     '_Compare': 1,
     '_CompareReduce': 1,
-    '_Combine': 3,
-    '_ExistAtt': 3,
+    '_Combine': 1,
+    '_ExistAtt': 1,
     '_Exist': 1}
 
 # output type of each module
