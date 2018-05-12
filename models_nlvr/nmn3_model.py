@@ -110,10 +110,10 @@ class NMN3Model:
                                       ('batch_idx', td.Scalar('int32'))])
                 case_break = case_break >> td.Function(modules.BreakModule)
                  #_AttReduce
-                case__att_reduce = td.Record([('input_0', att_expr_decl()),
+                case_att_reduce = td.Record([('input_0', att_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
                                       ('batch_idx', td.Scalar('int32'))])
-                case__att_reduce = case__att_reduce >> td.Function(modules.AttReduceModule)
+                case_att_reduce = case_att_reduce >> td.Function(modules.AttReduceModule)
                 #_Compare
                 case_compare = td.Record([('input_0', vector_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
