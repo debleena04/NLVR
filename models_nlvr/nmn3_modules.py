@@ -182,9 +182,9 @@ class Modules:
         text_param = self._slice_word_vecs(time_idx, batch_idx)
         
         if flag == True:
-            image_feat_grid = tf.pad(image_feat_grid, tf.convert_to_tensor([[0,0],[0,0],[1,1],[0,0]]),'CONSTANT')
+            #image_feat_grid = tf.pad(image_feat_grid, tf.convert_to_tensor([[0,0],[0,0],[1,1],[0,0]]),'CONSTANT')
             image_feat_grid_arr=[]
-            image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(image_feat_grid, num_or_size_splits=3, axis=2)
+            image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(image_feat_grid, num_or_size_splits=3, axis=0)
             image_feat_grid_arr.append(image_feat_grid_arr0[:,:,:,:14,:])
             image_feat_grid_arr.append(image_feat_grid_arr1[:,:,:,14:28,:])
             image_feat_grid_arr.append(image_feat_grid_arr2[:,:,:,28:,:])
@@ -381,7 +381,7 @@ class Modules:
         #   1. linear transform of the attention map (also including max and min)
         if flag == True:
             image_feat_grid_arr=[]
-            image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=2)
+            image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=0)
             image_feat_grid_arr.append(image_feat_grid_arr0[:,:,:,:14,:])
             image_feat_grid_arr.append(image_feat_grid_arr1[:,:,:,14:28,:])
             image_feat_grid_arr.append(image_feat_grid_arr2[:,:,:,28:,:])
@@ -515,7 +515,7 @@ class Modules:
         #   3. Linear classification
         if flag == True:
             image_feat_grid_arr=[]
-            image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=2)
+            image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=0)
             image_feat_grid_arr.append(image_feat_grid_arr0)
             image_feat_grid_arr.append(image_feat_grid_arr1)
             image_feat_grid_arr.append(image_feat_grid_arr2)
@@ -562,12 +562,12 @@ class Modules:
         #vector1_mapped = fc('input_vector1',input1, output_dim = map_dim)
         if flag == True:
             image_feat_grid_arr_1=[]
-            image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=2)
+            image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=0)
             image_feat_grid_arr_1.append(image_feat_grid_arr0)
             image_feat_grid_arr_1.append(image_feat_grid_arr1)
             image_feat_grid_arr_1.append(image_feat_grid_arr2)
             image_feat_grid_arr_2=[]
-            image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_1, num_or_size_splits=3, axis=2)
+            image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_1, num_or_size_splits=3, axis=0)
             image_feat_grid_arr_2.append(image_feat_grid_arr0)
             image_feat_grid_arr_2.append(image_feat_grid_arr1)
             image_feat_grid_arr_2.append(image_feat_grid_arr2)
@@ -606,12 +606,12 @@ class Modules:
         #   3. Linear classification
         if flag == True:
             image_feat_grid_arr_1=[]
-            image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=2)
+            image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=0)
             image_feat_grid_arr_1.append(image_feat_grid_arr0[:,:,:,:14,:])
             image_feat_grid_arr_1.append(image_feat_grid_arr1[:,:,:,14:28,:])
             image_feat_grid_arr_1.append(image_feat_grid_arr2[:,:,:,28:,:])
             image_feat_grid_arr_2=[]
-            image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_1, num_or_size_splits=3, axis=2)
+            image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_1, num_or_size_splits=3, axis=0)
             image_feat_grid_arr_2.append(image_feat_grid_arr0[:,:,:,:14,:])
             image_feat_grid_arr_2.append(image_feat_grid_arr1[:,:,:,14:28,:])
             image_feat_grid_arr_2.append(image_feat_grid_arr2[:,:,:,28:,:])
@@ -666,7 +666,7 @@ class Modules:
         #   1. Elementwise multiplication between image_feat_grid and text_param
         #   2. L2-normalization
         #   3. Linear classification
-        image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=2)
+        image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=0)
                 
         N = tf.shape(time_idx)[0]
         text_param = self._slice_word_vecs(time_idx, batch_idx)
@@ -707,7 +707,7 @@ class Modules:
         #   2. L2-normalization
         #   3. Linear classification
         
-        image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=2)
+        image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=0)
         
         N = tf.shape(time_idx)[0]
         text_param = self._slice_word_vecs(time_idx, batch_idx)
