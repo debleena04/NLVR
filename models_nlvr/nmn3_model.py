@@ -133,15 +133,11 @@ class NMN3Model:
                 case_compare_att = case_compare_att >> td.Function(modules.CompareAttModule)
                 #_Combine
                 case_combine = td.Record([('input_0', vector_expr_decl()),
-                                      ('input_1', vector_expr_decl()),
-                                      ('input_2', vector_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
                                       ('batch_idx', td.Scalar('int32'))])
                 case_combine = case_combine >> td.Function(modules.CombineModule)
                 #_ExistAtt
                 case_exist_att = td.Record([('input_0', vector_expr_decl()),
-                                      ('input_1', vector_expr_decl()),
-                                      ('input_2', vector_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
                                       ('batch_idx', td.Scalar('int32'))])
                 case_exist_att = case_exist_att >> td.Function(modules.ExistAttModule)
