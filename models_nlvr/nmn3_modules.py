@@ -143,10 +143,10 @@ class Modules:
                         eltwise_mult = tf.nn.l2_normalize(image_feat_mapped * text_param_mapped, 3)
                         att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1)
 
-                att_grid.set_shape(self.att_shape)
-                att_grid = tf.expand_dims(att_grid,0)
-                att_grid = tf.tile(att_grid,[1,1,1,3,1])
-                att_grid_arr.append(att_grid)
+                        att_grid.set_shape(self.att_shape)
+                        att_grid = tf.expand_dims(att_grid,0)
+                        att_grid = tf.tile(att_grid,[1,1,1,3,1])
+                        att_grid_arr.append(att_grid)
             return att_grid_arr
             
         if flag == False:
@@ -170,9 +170,9 @@ class Modules:
                     eltwise_mult = tf.nn.l2_normalize(image_feat_mapped * text_param_mapped, 3)
                     att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1)
 
-            att_grid.set_shape(self.att_shape)
-            att_grid = tf.expand_dims(att_grid,0)
-            att_grid = tf.tile(att_grid,[3,1,1,1,1])
+                    att_grid.set_shape(self.att_shape)
+                    att_grid = tf.expand_dims(att_grid,0)
+                    att_grid = tf.tile(att_grid,[3,1,1,1,1])
             return att_grid
 
     def TransformModule(self, input_0, time_idx, batch_idx, kernel_size=5,
@@ -218,10 +218,10 @@ class Modules:
                             image_feat_mapped * text_param_mapped * att_feat_mapped, 3)
                         att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1)
                        
-                att_grid.set_shape(self.att_shape)
-                att_grid = tf.expand_dims(att_grid,0)
-                att_grid = tf.tile(att_grid,[1,1,1,3,1])
-                att_grid_arr.append(att_grid)
+                        att_grid.set_shape(self.att_shape)
+                        att_grid = tf.expand_dims(att_grid,0)
+                        att_grid = tf.tile(att_grid,[1,1,1,3,1])
+                        att_grid_arr.append(att_grid)
             return att_grid_arr        
         
         # Mapping: att_grid x text_param -> att_grid
@@ -266,9 +266,9 @@ class Modules:
                         image_feat_mapped * text_param_mapped * att_feat_mapped, 3)
                     att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1)
 
-            att_grid.set_shape(self.att_shape)
-            att_grid = tf.expand_dims(att_grid,0)
-            att_grid = tf.tile(att_grid,[3,1,1,1,1])
+                    att_grid.set_shape(self.att_shape)
+                    att_grid = tf.expand_dims(att_grid,0)
+                    att_grid = tf.tile(att_grid,[3,1,1,1,1])
             return att_grid
 
     
@@ -396,9 +396,9 @@ class Modules:
                         # att_reduced has shape [N, 3]
                         att_concat = tf.concat([att_all, att_min, att_max], axis=1)
                         scores = fc('fc_scores', att_concat, output_dim=map_dim)
-                    scores = tf.expand_dims(scores,0)
-                    #scores = tf.tile(scores,[1,3])
-                    scores_arr.append(scores)
+                        scores = tf.expand_dims(scores,0)
+                        #scores = tf.tile(scores,[1,3])
+                        scores_arr.append(scores)
             return scores_arr 
                 
         if flag==False:
@@ -411,9 +411,9 @@ class Modules:
                     # att_reduced has shape [N, 3]
                     att_concat = tf.concat([att_all, att_min, att_max], axis=1)
                     scores = fc('fc_scores', att_concat, output_dim=map_dim)
-                scores = tf.expand_dims(scores,0)
-                scores = tf.tile(scores,[3,1])
-                return scores
+                    scores = tf.expand_dims(scores,0)
+                    scores = tf.tile(scores,[3,1])
+            return scores
     
     def SamePropertyModule(self, input_0, input_1, time_idx, batch_idx,
         map_dim=500, scope='SamePropertyModule', reuse=True):
@@ -527,8 +527,8 @@ class Modules:
                         vector_mapped = fc('input_vector_%d'%i,image_feat_grid_arr[i], output_dim = map_dim)
                         scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=map_dim)                    
                         scores = tf.expand_dims(scores,0)
-                    #scores = tf.tile(scores,[1,3])
-                    scores_arr.append(scores)
+                        #scores = tf.tile(scores,[1,3])
+                        scores_arr.append(scores)
                 return scores_arr 
   
         if flag == False:
@@ -537,9 +537,9 @@ class Modules:
                     text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
                     vector_mapped = fc('input_vector_0',input_0, output_dim = map_dim)
                     scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=map_dim)
-            #scores = text_param_mapped + vector_mapped
-            scores = tf.expand_dims(scores,0)
-            scores = tf.tile(scores,[3,1])
+                    #scores = text_param_mapped + vector_mapped
+                    scores = tf.expand_dims(scores,0)
+                    scores = tf.tile(scores,[3,1])
             return scores
    
     def CompareReduceModule(self, input_0, input_1, time_idx, batch_idx, map_dim=500, scope='CompareReduceModule',
@@ -577,15 +577,15 @@ class Modules:
                     with tf.variable_scope(scope, reuse=reuse):
                         scores = fc('fc_eltwise', image_feat_grid_arr_1[i] + image_feat_grid_arr_2[i], output_dim=map_dim)
                         scores = tf.expand_dims(scores,0)
-                    #scores = tf.tile(scores,[1,3])
-                    scores_arr.append(scores)
-                return scores_arr 
+                        #scores = tf.tile(scores,[1,3])
+                        scores_arr.append(scores)
+            return scores_arr 
         if flag == False:
             with tf.variable_scope(self.module_variable_scope):
                 with tf.variable_scope(scope, reuse=reuse):
                     scores = fc('fc_eltwise', input_0 + input_1, output_dim=map_dim)
                     scores = tf.expand_dims(scores,0)
-            scores = tf.tile(scores,[3,1])
+                    scores = tf.tile(scores,[3,1])
             return scores
             
     def CompareAttModule(self, input_0, input_1, time_idx, batch_idx, map_dim=500, scope='CompareAttModule',
@@ -628,8 +628,8 @@ class Modules:
                                 to_T([N, map_dim]))
                         scores = fc('fc_eltwise', att_feat0_mapped + att_feat1_mapped, output_dim=map_dim)
                         scores = tf.expand_dims(scores,0)
-                    #scores = tf.tile(scores,[1,3])
-                    scores_arr.append(scores)
+                        #scores = tf.tile(scores,[1,3])
+                        scores_arr.append(scores)
                 return scores_arr
         
         if flag == False:
