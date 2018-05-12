@@ -673,7 +673,7 @@ class Modules:
         text_param_mapped = fc('fc_text', text_param, output_dim=3)
         text_param_softmax = tf.nn.softmax(text_param_mapped)
         with tf.variable_scope('token_prediction'):
-                w_y = tf.get_variable('weights', [len(input_0),1],
+                w_y = tf.get_variable('weights', [map_dim,1],
                     initializer=tf.contrib.layers.xavier_initializer())
                 b_y = tf.get_variable('biases', 1,
                     initializer=tf.constant_initializer(0.))
@@ -714,7 +714,7 @@ class Modules:
         text_param_mapped = fc('fc_text', text_param, output_dim=3)
         text_param_softmax = tf.nn.softmax(text_param_mapped)
         with tf.variable_scope('token_prediction'):
-                w_y = tf.get_variable('weights', [len(input_0),1],
+                w_y = tf.get_variable('weights', [map_dim,1],
                     initializer=tf.contrib.layers.xavier_initializer())
                 b_y = tf.get_variable('biases', 1,
                     initializer=tf.constant_initializer(0.))
