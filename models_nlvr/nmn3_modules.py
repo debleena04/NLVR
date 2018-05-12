@@ -621,10 +621,10 @@ class Modules:
                     with tf.variable_scope(scope, reuse=reuse):
                         N = tf.shape(time_idx)[0]
                         att_feat0_mapped = tf.reshape(
-                                fc('fc_att', image_feat_grid_arr_1[i], output_dim=map_dim),
+                                fc('fc_att1', image_feat_grid_arr_1[i], output_dim=map_dim),
                                 to_T([N, map_dim]))
                         att_feat1_mapped = tf.reshape(
-                                fc('fc_att', image_feat_grid_arr_2[i], output_dim=map_dim),
+                                fc('fc_att2', image_feat_grid_arr_2[i], output_dim=map_dim),
                                 to_T([N, map_dim]))
                         scores = fc('fc_eltwise', att_feat0_mapped + att_feat1_mapped, output_dim=map_dim)
                         #scores = tf.expand_dims(scores,0)
@@ -637,10 +637,10 @@ class Modules:
                 with tf.variable_scope(scope, reuse=reuse):
                     N = tf.shape(time_idx)[0]
                     att_feat0_mapped = tf.reshape(
-                                fc('fc_att', input_0, output_dim=map_dim),
+                                fc('fc_att1', input_0, output_dim=map_dim),
                                 to_T([N, map_dim]))
                     att_feat1_mapped = tf.reshape(
-                                fc('fc_att', input_1, output_dim=map_dim),
+                                fc('fc_att2', input_1, output_dim=map_dim),
                                 to_T([N, map_dim]))
                     scores = fc('fc_eltwise', att_feat0_mapped + att_feat1_mapped, output_dim=map_dim)
                     #scores = tf.expand_dims(scores,0)
