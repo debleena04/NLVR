@@ -396,7 +396,7 @@ class Modules:
                         # att_reduced has shape [N, 3]
                         att_concat = tf.concat([att_all, att_min, att_max], axis=1)
                         scores = fc('fc_scores', att_concat, output_dim=map_dim)
-                        scores = tf.expand_dims(scores,0)
+                        #scores = tf.expand_dims(scores,0)
                         #scores = tf.tile(scores,[1,3])
                         scores_arr.append(scores)
             return scores_arr 
@@ -411,7 +411,7 @@ class Modules:
                     # att_reduced has shape [N, 3]
                     att_concat = tf.concat([att_all, att_min, att_max], axis=1)
                     scores = fc('fc_scores', att_concat, output_dim=map_dim)
-                    scores = tf.expand_dims(scores,0)
+                    #scores = tf.expand_dims(scores,0)
                     scores = tf.tile(scores,[3,1])
             return scores
     
@@ -526,7 +526,7 @@ class Modules:
                         text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
                         vector_mapped = fc('input_vector_%d'%i,image_feat_grid_arr[i], output_dim = map_dim)
                         scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=map_dim)                    
-                        scores = tf.expand_dims(scores,0)
+                        #scores = tf.expand_dims(scores,0)
                         #scores = tf.tile(scores,[1,3])
                         scores_arr.append(scores)
                 return scores_arr 
@@ -538,7 +538,7 @@ class Modules:
                     vector_mapped = fc('input_vector_0',input_0, output_dim = map_dim)
                     scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=map_dim)
                     #scores = text_param_mapped + vector_mapped
-                    scores = tf.expand_dims(scores,0)
+                    #scores = tf.expand_dims(scores,0)
                     scores = tf.tile(scores,[3,1])
             return scores
    
@@ -576,7 +576,7 @@ class Modules:
                 with tf.variable_scope(self.module_variable_scope):
                     with tf.variable_scope(scope, reuse=reuse):
                         scores = fc('fc_eltwise', image_feat_grid_arr_1[i] + image_feat_grid_arr_2[i], output_dim=map_dim)
-                        scores = tf.expand_dims(scores,0)
+                        #scores = tf.expand_dims(scores,0)
                         #scores = tf.tile(scores,[1,3])
                         scores_arr.append(scores)
             return scores_arr 
@@ -584,7 +584,7 @@ class Modules:
             with tf.variable_scope(self.module_variable_scope):
                 with tf.variable_scope(scope, reuse=reuse):
                     scores = fc('fc_eltwise', input_0 + input_1, output_dim=map_dim)
-                    scores = tf.expand_dims(scores,0)
+                    #scores = tf.expand_dims(scores,0)
                     scores = tf.tile(scores,[3,1])
             return scores
             
@@ -627,7 +627,7 @@ class Modules:
                                 fc('fc_att', image_feat_grid_arr_2[i], output_dim=map_dim),
                                 to_T([N, map_dim]))
                         scores = fc('fc_eltwise', att_feat0_mapped + att_feat1_mapped, output_dim=map_dim)
-                        scores = tf.expand_dims(scores,0)
+                        #scores = tf.expand_dims(scores,0)
                         #scores = tf.tile(scores,[1,3])
                         scores_arr.append(scores)
                 return scores_arr
@@ -643,7 +643,7 @@ class Modules:
                                 fc('fc_att', input_1, output_dim=map_dim),
                                 to_T([N, map_dim]))
                     scores = fc('fc_eltwise', att_feat0_mapped + att_feat1_mapped, output_dim=map_dim)
-                    scores = tf.expand_dims(scores,0)
+                    #scores = tf.expand_dims(scores,0)
                     scores = tf.tile(scores,[3,1])
             return scores
         
