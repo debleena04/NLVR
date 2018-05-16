@@ -42,6 +42,7 @@ class Modules:
         self.encoder_states = encoder_states
         self.num_choices = num_choices
         self.map_dim = map_dim
+        self.flag = False
         # Capture the variable scope for creating all variables
         with tf.variable_scope('module_variables') as module_variable_scope:
             self.module_variable_scope = module_variable_scope
@@ -124,7 +125,7 @@ class Modules:
         #   1. Elementwise multiplication between image_feat_grid and text_param
         #   2. L2-normalization
         #   3. Linear classification
-        if flag == True:
+        if self.flag == True:
             image_feat_grid = tf.pad(image_feat_grid, tf.convert_to_tensor([[0,0],[0,0],[1,1],[0,0]]),'CONSTANT')
             #print("image_feat_grid shape in find:", image_feat_grid.shape)
             image_feat_grid_arr=[]
@@ -154,14 +155,18 @@ class Modules:
                         eltwise_mult = tf.nn.l2_normalize(image_feat_mapped * text_param_mapped, 3)
                         att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1)
                         #print("att grid in find:", att_grid.shape)
-                        att_grid.set_shape(self.att_shape)
-                        att_grid = tf.expand_dims(att_grid,1)
-                        att_grid = tf.tile(att_grid,[1,1,1,3,1])
+                        att_grid= tf.reshape(att_grid, to_T([N,10,14,1]))
+                        #att_grid = tf.expand_dims(att_grid,1)
+                        #print("att grid shape",att_grid.shape)
+                        att_grid = tf.tile(att_grid,[1,1,3,1])
                         att_grid_arr.append(att_grid)
+                        #print("att grid shape after tiling",att_grid.shape)
                         #print(att_grid_arr.shape)
-            return tf.convert_to_tensor(att_grid_arr)
+            arr = tf.convert_to_tensor(att_grid_arr)
+            arr =tf.transpose(arr,[1,0,2,3,4])
+            return arr
             
-        if flag == False:
+        if self.flag == False:
             #image_feat_grid = tf.expand_dims(image_feat_grid,axis= 0)
             image_feat_grid = tf.pad(image_feat_grid, tf.convert_to_tensor([[0,0],[0,0],[1,1],[0,0]]),'CONSTANT')
             with tf.variable_scope(self.module_variable_scope):
@@ -200,7 +205,7 @@ class Modules:
         image_feat_grid = self._slice_image_feat_grid(batch_idx)
         text_param = self._slice_word_vecs(time_idx, batch_idx)
         
-        if flag == True:
+        if self.flag == True:
             #image_feat_grid = tf.pad(image_feat_grid, tf.convert_to_tensor([[0,0],[0,0],[1,1],[0,0]]),'CONSTANT')
             input_arr=[]
             input_arr0, input_arr1, input_arr2 = tf.split(input_0, num_or_size_splits=3, axis=1)
@@ -244,12 +249,16 @@ class Modules:
                             image_feat_mapped * text_param_mapped * att_feat_mapped, 3)
                         att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1)
                        
-                        att_grid.set_shape(self.att_shape)
-                        att_grid = tf.expand_dims(att_grid,1)
-                        att_grid = tf.tile(att_grid,[1,1,1,3,1])
+                        att_grid= tf.reshape(att_grid, to_T([N,10,14,1]))
+                        #att_grid = tf.expand_dims(att_grid,1)
+                        #print("att grid shape",att_grid.shape)
+                        att_grid = tf.tile(att_grid,[1,1,3,1])
                         att_grid_arr.append(att_grid)
-                        
-            return tf.convert_to_tensor(att_grid_arr)        
+                        #print("att grid shape after tiling",att_grid.shape)
+                        #print(att_grid_arr.shape)
+            arr = tf.convert_to_tensor(att_grid_arr)
+            arr =tf.transpose(arr,[1,0,2,3,4])
+            return arr       
         
         # Mapping: att_grid x text_param -> att_grid
         # Input:
@@ -264,7 +273,7 @@ class Modules:
         #   2. linear transform language features to map_dim
         #   3. Convolve image features to map_dim
         #   4. Element-wise multiplication of the three, l2_normalize, linear transform.
-        if flag == False:
+        if self.flag == False:
             
             input_arr0, input_arr1, input_arr2 = tf.split(input_0, num_or_size_splits=3, axis=1)
             image_feat_grid = tf.pad(image_feat_grid, tf.convert_to_tensor([[0,0],[0,0],[1,1],[0,0]]),'CONSTANT')
@@ -335,7 +344,7 @@ class Modules:
               att_reduced = tf.reshape(att_reduced,[-1,3])
               scores = fc('fc_scores', att_reduced, output_dim=self.num_choices)
               scores = tf.nn.softmax(scores)
-              flag = False
+              self.flag = False
               
            return scores
     
@@ -417,7 +426,7 @@ class Modules:
         # Implementation:
         #   1. linear transform of the attention map (also including max and min)
         #print("input shape in count:",input_0.shape)
-        if flag == True:
+        if self.flag == True:
             image_feat_grid_arr=[]
             image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=1)
             image_feat_grid_arr.append(image_feat_grid_arr0[:,:,:,:14,:])
@@ -442,7 +451,7 @@ class Modules:
                         scores_arr.append(scores)
             return tf.convert_to_tensor(scores_arr) 
                 
-        if flag==False:
+        if self.flag==False:
             image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=1)
             with tf.variable_scope(self.module_variable_scope):
                 with tf.variable_scope(scope, reuse=reuse):
@@ -524,7 +533,7 @@ class Modules:
    
     def BreakModule(self, time_idx, batch_idx, map_dim=500, scope='BreakModule',
         reuse=True):
-        flag = True 
+        self.flag = True 
             
         
     
@@ -571,7 +580,7 @@ class Modules:
         #   1. Elementwise multiplication between image_feat_grid and text_param
         #   2. L2-normalization
         #   3. Linear classification
-        if flag == True:
+        if self.flag == True:
             image_feat_grid_arr=[]
             image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=1)
             image_feat_grid_arr.append(image_feat_grid_arr0)
@@ -591,7 +600,7 @@ class Modules:
                         scores_arr.append(scores)
                 return tf.convert_to_tensor(scores_arr) 
   
-        if flag == False:
+        if self.flag == False:
             image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=1)
             with tf.variable_scope(self.module_variable_scope):
                 with tf.variable_scope(scope, reuse=reuse):
@@ -622,7 +631,7 @@ class Modules:
         #   3. Linear classification
         #vector0_mapped = fc('input_vector0',input0, output_dim = map_dim)
         #vector1_mapped = fc('input_vector1',input1, output_dim = map_dim)
-        if flag == True:
+        if self.flag == True:
             image_feat_grid_arr_1=[]
             image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=1)
             image_feat_grid_arr_1.append(image_feat_grid_arr0)
@@ -643,7 +652,7 @@ class Modules:
                         #scores = tf.tile(scores,[1,3])
                         scores_arr.append(scores)
             return tf.convert_to_tensor(scores_arr) 
-        if flag == False:
+        if self.flag == False:
             input_0_arr0,  input_0_arr1,  input_0_arr2 = tf.split(input_0, num_or_size_splits=3, axis=1)
             input_1_arr0,  input_1_arr1,  input_1_arr2 = tf.split(input_1, num_or_size_splits=3, axis=1)
             with tf.variable_scope(self.module_variable_scope):
@@ -671,7 +680,7 @@ class Modules:
         #   2. L2-normalization
         #   3. Linear classification
         #print("input shape in compare att",input_0.shape,input_1.shape)
-        if flag == True:
+        if self.flag == True:
             image_feat_grid_arr_1=[]
             image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=1)
             image_feat_grid_arr_1.append(image_feat_grid_arr0[:,:,:,:14,:])
@@ -702,7 +711,7 @@ class Modules:
                         scores_arr.append(scores)
                 return tf.convert_to_tensor(scores_arr)
         
-        if flag == False:
+        if self.flag == False:
             input_0_arr0,  input_0_arr1,  input_0_arr2 = tf.split(input_0, num_or_size_splits=3, axis=1)
             input_1_arr0,  input_1_arr1,  input_1_arr2 = tf.split(input_1, num_or_size_splits=3, axis=1)
             input_0_arr0 = tf.reshape(input_0_arr0,[-1,10,42,1])
@@ -788,7 +797,7 @@ class Modules:
                     #print("score shape:",score.shape)
                     #print("Combine scores shape",scores.shape)
                 #scores = tf.convert_to_tensor([0,1])
-            flag = False
+            self.flag = False
         return scores
     
     def ExistAttModule(self, input_0, time_idx, batch_idx, map_dim=500, scope='ExistAttModule',
@@ -855,7 +864,7 @@ class Modules:
                     #scores = fc('fc_scores', scores, output_dim=self.num_choices)
                     #scores = tf.nn.softmax(scores)
             #scores = tf.convert_to_tensor([0,1])
-            flag = False
+            self.flag = False
             return scores
     
     def ExistModule(self, input_0, time_idx, batch_idx, scope='ExistModule', reuse=True):
@@ -875,6 +884,6 @@ class Modules:
             with tf.variable_scope(scope, reuse=reuse):
                 scores = fc('fc_scores', input_0, output_dim=self.num_choices)
                 scores = tf.nn.softmax(scores)
-                flag = False
+                self.flag = False
         return scores
 
