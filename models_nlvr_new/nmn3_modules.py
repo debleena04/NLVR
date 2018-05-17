@@ -232,6 +232,30 @@ class Modules:
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         image_feat_grid = self._slice_image_feat_grid(batch_idx)
         text_param = self._slice_word_vecs(time_idx, batch_idx)
+        D_im = image_feat_grid.get_shape().as_list()[-1]
+        D_txt = text_param.get_shape().as_list()[-1]
+        with tf.variable_scope(self.module_variable_scope):
+           with tf.variable_scope(scope, reuse=reuse):
+               with tf.variable_scope('conv_image'):
+                  W_c = tf.get_variable('weights', [D_im, map_dim],
+                     initializer=tf.contrib.layers.xavier_initializer())
+                  b_c = tf.get_variable('biases', map_dim,
+                     initializer=tf.constant_initializer(0.))
+               with tf.variable_scope('fc_text'):
+                  W_t = tf.get_variable('weights', [D_txt, map_dim],
+                    initializer=tf.contrib.layers.xavier_initializer())
+                  b_t = tf.get_variable('biases', map_dim,
+                     initializer=tf.constant_initializer(0.))
+               with tf.variable_scope('fc_att'):
+                  W_t = tf.get_variable('weights', [D_im, map_dim],
+                    initializer=tf.contrib.layers.xavier_initializer())
+                  b_t = tf.get_variable('biases', map_dim,
+                     initializer=tf.constant_initializer(0.))
+               with tf.variable_scope('conv_eltwise'):
+                  W_e = tf.get_variable('weights', [map_dim,1],
+                     initializer=tf.contrib.layers.xavier_initializer())
+                  b_e = tf.get_variable('biases', 1,
+                     initializer=tf.constant_initializer(0.))
         
         if self.flag == True:
             #image_feat_grid = tf.pad(image_feat_grid, tf.convert_to_tensor([[0,0],[0,0],[1,1],[0,0]]),'CONSTANT')
@@ -260,9 +284,9 @@ class Modules:
 
                        # image_feat_mapped has shape [N, H, W, map_dim]
                         image_feat_mapped = _1x1_conv('conv_image', image_feat_grid_arr[i],
-                                              output_dim=map_dim)
+                                              output_dim=map_dim, reuse =True)
 
-                        text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
+                        text_param_mapped = fc('fc_text', text_param, output_dim=map_dim, reuse =True)
                         text_param_mapped = tf.reshape(text_param_mapped, to_T([N, 1, 1, map_dim]))
 
                         att_softmax = tf.reshape(
@@ -271,11 +295,11 @@ class Modules:
                         # att_feat has shape [N, D_vis]
                         att_feat = tf.reduce_sum(image_feat_grid_arr[i] * att_softmax, axis=[1, 2])
                         att_feat_mapped = tf.reshape(
-                            fc('fc_att', att_feat, output_dim=map_dim), to_T([N, 1, 1, map_dim]))
+                            fc('fc_att', att_feat, output_dim=map_dim, reuse =True), to_T([N, 1, 1, map_dim]))
  
                         eltwise_mult = tf.nn.l2_normalize(
                             image_feat_mapped * text_param_mapped * att_feat_mapped, 3)
-                        att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1)
+                        att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1, reuse =True)
                        
                         att_grid= tf.reshape(att_grid, to_T([N,10,14,1]))
                         #att_grid = tf.expand_dims(att_grid,1)
@@ -316,9 +340,9 @@ class Modules:
 
                     # image_feat_mapped has shape [N, H, W, map_dim]
                     image_feat_mapped = _1x1_conv('conv_image', image_feat_grid,
-                                              output_dim=map_dim)
+                                              output_dim=map_dim, reuse =True)
 
-                    text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
+                    text_param_mapped = fc('fc_text', text_param, output_dim=map_dim, reuse =True)
                     text_param_mapped = tf.reshape(text_param_mapped, to_T([N, 1, 1, map_dim]))
 
                     att_softmax = tf.reshape(
@@ -327,11 +351,11 @@ class Modules:
                     # att_feat has shape [N, D_vis]
                     att_feat = tf.reduce_sum(image_feat_grid * att_softmax, axis=[1, 2])
                     att_feat_mapped = tf.reshape(
-                        fc('fc_att', att_feat, output_dim=map_dim), to_T([ N, 1, 1, map_dim]))
+                        fc('fc_att', att_feat, output_dim=map_dim, reuse =True), to_T([ N, 1, 1, map_dim]))
 
                     eltwise_mult = tf.nn.l2_normalize(
                         image_feat_mapped * text_param_mapped * att_feat_mapped, 3)
-                    att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1)
+                    att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1, reuse =True)
 
                     att_grid.set_shape(self.att_shape)
                     att_grid = tf.expand_dims(att_grid,1)
@@ -454,6 +478,14 @@ class Modules:
         # Implementation:
         #   1. linear transform of the attention map (also including max and min)
         #print("input shape in count:",input_0.shape)
+        with tf.variable_scope(self.module_variable_scope):
+                    with tf.variable_scope(scope, reuse=reuse):
+                        H, W = self.att_shape[1:3]
+                        with tf.variable_scope('fc_text'):
+                            W_t = tf.get_variable('weights', [H*W+2, map_dim],
+                             initializer=tf.contrib.layers.xavier_initializer())
+                            b_t = tf.get_variable('biases', map_dim,
+                              initializer=tf.constant_initializer(0.))
         if self.flag == True:
             image_feat_grid_arr=[]
             image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=1)
@@ -472,7 +504,7 @@ class Modules:
                         # att_reduced has shape [N, 3]
                         att_concat = tf.concat([att_all, att_min, att_max], axis=2)
                         att_concat = tf.reshape(att_concat,[-1,H*W+2])
-                        scores = fc('fc_scores', att_concat, output_dim=map_dim)
+                        scores = fc('fc_scores', att_concat, output_dim=map_dim, reuse = True)
                         #scores.set_shape((1,map_dim))
                         scores = tf.expand_dims(scores,1)
                         #scores = tf.tile(scores,[1,3,1])
@@ -493,7 +525,7 @@ class Modules:
                     att_concat = tf.concat([att_all, att_min, att_max], axis=2)
                     #print("shape of att_concat in count", att_concat.shape)
                     att_concat = tf.reshape(att_concat,[-1,H*W+2])
-                    scores = fc('fc_scores', att_concat, output_dim=map_dim)
+                    scores = fc('fc_scores', att_concat, output_dim=map_dim, reuse = True)
                     #print("score shape in count ",scores.shape)
                     scores = tf.expand_dims(scores,1)
                     #scores.set_shape((1,map_dim))
@@ -598,22 +630,24 @@ class Modules:
         image_feat_grid = self._slice_image_feat_grid(batch_idx)
         image_feat_grid = tf.pad(image_feat_grid, tf.convert_to_tensor([[0,0],[0,0],[1,1],[0,0]]),'CONSTANT')
         text_param = self._slice_word_vecs(time_idx, batch_idx)
-        #with tf.variable_scope(self.module_variable_scope):
-        #   with tf.variable_scope(scope, reuse=reuse):
-        with tf.variable_scope('input_vector'):
-            W_c = tf.get_variable('weights', [self.batch_size, map_dim],
+        D_im = input_0.get_shape().as_list()[-1]
+        D_txt = text_param.get_shape().as_list()[-1]
+        with tf.variable_scope(self.module_variable_scope):
+           with tf.variable_scope(scope, reuse=reuse):
+               with tf.variable_scope('input_vector'):
+                   W_c = tf.get_variable('weights', [D_im, map_dim],
                     initializer=tf.contrib.layers.xavier_initializer())
-            b_c = tf.get_variable('biases', map_dim,
+                   b_c = tf.get_variable('biases', map_dim,
                     initializer=tf.constant_initializer(0.))
-        with tf.variable_scope('fc_text'):
-            W_t = tf.get_variable('weights', [self.batch_size, map_dim],
+               with tf.variable_scope('fc_text'):
+                   W_t = tf.get_variable('weights', [D_txt, map_dim],
                     initializer=tf.contrib.layers.xavier_initializer())
-            b_t = tf.get_variable('biases', map_dim,
+                   b_t = tf.get_variable('biases', map_dim,
                     initializer=tf.constant_initializer(0.))
-        with tf.variable_scope('fc_eltwise'):
-            W_e = tf.get_variable('weights', [self.batch_size, map_dim],
+               with tf.variable_scope('fc_eltwise'):
+                   W_e = tf.get_variable('weights', [map_dim, map_dim],
                     initializer=tf.contrib.layers.xavier_initializer())
-            b_e = tf.get_variable('biases', map_dim,
+                   b_e = tf.get_variable('biases', map_dim,
                     initializer=tf.constant_initializer(0.))
 
         # Mapping: input0 x text_param -> scores
@@ -638,11 +672,11 @@ class Modules:
             for i in range(3):
                 with tf.variable_scope(self.module_variable_scope):
                     with tf.variable_scope(scope, reuse=reuse):
-                        text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
+                        text_param_mapped = fc('fc_text', text_param, output_dim=map_dim, reuse=True)
                         #text_param_mapped = tf.reshape(text_param_mapped, to_T([N, 1, 1, map_dim]))
-                        vector_mapped = fc('input_vector',image_feat_grid_arr[i], output_dim = map_dim)
+                        vector_mapped = fc('input_vector',image_feat_grid_arr[i], output_dim = map_dim, reuse = True)
                         #print("vector mapped and text mapped",text_param_mapped.shape, vector_mapped.shape)
-                        scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=map_dim)
+                        scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=map_dim, reuse = True)
                         #scores.set_shape((1,map_dim))                    
                         scores = tf.expand_dims(scores,1)
                         #scores = tf.tile(scores,[1,3])
@@ -653,9 +687,9 @@ class Modules:
             image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=1)
             with tf.variable_scope(self.module_variable_scope):
                 with tf.variable_scope(scope, reuse=reuse):
-                    text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
-                    vector_mapped = fc('input_vector',image_feat_grid_arr0, output_dim = map_dim)
-                    scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=map_dim)
+                    text_param_mapped = fc('fc_text', text_param, output_dim=map_dim,reuse = True)
+                    vector_mapped = fc('input_vector',image_feat_grid_arr0, output_dim = map_dim), reuse = True)
+                    scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=map_dim, reuse = True)
                     #scores = text_param_mapped + vector_mapped
                     scores = tf.expand_dims(scores,1)
                     #scores.set_shape((1,map_dim))
@@ -680,6 +714,17 @@ class Modules:
         #   3. Linear classification
         #vector0_mapped = fc('input_vector0',input0, output_dim = map_dim)
         #vector1_mapped = fc('input_vector1',input1, output_dim = map_dim)
+        D_im = input_0.get_shape().as_list()[-1]
+        
+        #D_txt = text_param.get_shape().as_list()[-1]
+        with tf.variable_scope(self.module_variable_scope):
+           with tf.variable_scope(scope, reuse=reuse):
+               with tf.variable_scope('fc_eltwise'):
+                   W_c = tf.get_variable('weights', [D_im, map_dim],
+                    initializer=tf.contrib.layers.xavier_initializer())
+                   b_c = tf.get_variable('biases', map_dim,
+                    initializer=tf.constant_initializer(0.))
+               
         if self.flag == True:
             image_feat_grid_arr_1=[]
             image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=1)
@@ -695,7 +740,7 @@ class Modules:
             for i in range(3):
                 with tf.variable_scope(self.module_variable_scope):
                     with tf.variable_scope(scope, reuse=reuse):
-                        scores = fc('fc_eltwise', image_feat_grid_arr_1[i] + image_feat_grid_arr_2[i], output_dim=map_dim)
+                        scores = fc('fc_eltwise', image_feat_grid_arr_1[i] + image_feat_grid_arr_2[i], output_dim=map_dim, reuse = True)
                         scores = tf.expand_dims(scores,1)
                         #scores.set_shape((1,map_dim))
                         #scores = tf.tile(scores,[1,3])
@@ -706,7 +751,7 @@ class Modules:
             input_1_arr0,  input_1_arr1,  input_1_arr2 = tf.split(input_1, num_or_size_splits=3, axis=1)
             with tf.variable_scope(self.module_variable_scope):
                 with tf.variable_scope(scope, reuse=reuse):
-                    scores = fc('fc_eltwise', input_0_arr0 + input_1_arr0, output_dim=map_dim)
+                    scores = fc('fc_eltwise', input_0_arr0 + input_1_arr0, output_dim=map_dim, reuse = True)
                     scores = tf.expand_dims(scores,1)
                     #scores.set_shape((1,map_dim))
                     scores = tf.tile(scores,[1,3,1])
@@ -729,6 +774,25 @@ class Modules:
         #   2. L2-normalization
         #   3. Linear classification
         #print("input shape in compare att",input_0.shape,input_1.shape)
+        D_im = input_0.get_shape().as_list()[-1]
+        D_im2 = input_1.get_shape().as_list()[-1]
+        with tf.variable_scope(self.module_variable_scope):
+           with tf.variable_scope(scope, reuse=reuse):
+               with tf.variable_scope('fc_att1'):
+                   W_c = tf.get_variable('weights', [D_im, map_dim],
+                    initializer=tf.contrib.layers.xavier_initializer())
+                   b_c = tf.get_variable('biases', map_dim,
+                    initializer=tf.constant_initializer(0.))
+               with tf.variable_scope('fc_att1'):
+                   W_t = tf.get_variable('weights', [D_im2, map_dim],
+                    initializer=tf.contrib.layers.xavier_initializer())
+                   b_t = tf.get_variable('biases', map_dim,
+                    initializer=tf.constant_initializer(0.))
+               with tf.variable_scope('fc_eltwise'):
+                   W_e = tf.get_variable('weights', [map_dim, map_dim],
+                    initializer=tf.contrib.layers.xavier_initializer())
+                   b_e = tf.get_variable('biases', map_dim,
+                    initializer=tf.constant_initializer(0.))
         if self.flag == True:
             image_feat_grid_arr_1=[]
             image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=1)
@@ -748,12 +812,12 @@ class Modules:
                         image_feat_grid_arr_2[i]=tf.reshape(image_feat_grid_arr_2[i],[-1,10,14,1])
                         N = tf.shape(time_idx)[0]
                         att_feat0_mapped = tf.reshape(
-                                fc('fc_att1', image_feat_grid_arr_1[i], output_dim=map_dim),
+                                fc('fc_att1', image_feat_grid_arr_1[i], output_dim=map_dim, reuse = True),
                                 to_T([N, map_dim]))
                         att_feat1_mapped = tf.reshape(
-                                fc('fc_att2', image_feat_grid_arr_2[i], output_dim=map_dim),
+                                fc('fc_att2', image_feat_grid_arr_2[i], output_dim=map_dim, reuse = True),
                                 to_T([N, map_dim]))
-                        scores = fc('fc_eltwise', att_feat0_mapped + att_feat1_mapped, output_dim=map_dim)
+                        scores = fc('fc_eltwise', att_feat0_mapped + att_feat1_mapped, output_dim=map_dim, reuse = True)
                         scores = tf.expand_dims(scores,1)
                         #scores.set_shape((1,map_dim))
                         #scores = tf.tile(scores,[1,3])
@@ -770,12 +834,12 @@ class Modules:
                 with tf.variable_scope(scope, reuse=reuse):
                     N = tf.shape(time_idx)[0]
                     att_feat0_mapped = tf.reshape(
-                                fc('fc_att1', input_0_arr0, output_dim=map_dim),
+                                fc('fc_att1', input_0_arr0, output_dim=map_dim,reuse = True),
                                 to_T([N, map_dim]))
                     att_feat1_mapped = tf.reshape(
-                                fc('fc_att2', input_1_arr0, output_dim=map_dim),
+                                fc('fc_att2', input_1_arr0, output_dim=map_dim, reuse = True),
                                 to_T([N, map_dim]))
-                    scores = fc('fc_eltwise', att_feat0_mapped + att_feat1_mapped, output_dim=map_dim)
+                    scores = fc('fc_eltwise', att_feat0_mapped + att_feat1_mapped, output_dim=map_dim, reuse = True)
                     scores = tf.expand_dims(scores,1)
                     #scores.set_shape((1,map_dim))
                     scores = tf.tile(scores,[1,3,1])
