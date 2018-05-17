@@ -1,4 +1,3 @@
-
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
@@ -10,7 +9,7 @@ from models_nlvr_new.cnn import fc_layer as fc, conv_layer as conv
 from models_nlvr_new.empty_safe_conv import empty_safe_1x1_conv as _1x1_conv
 from models_nlvr_new.empty_safe_conv import empty_safe_conv as _conv
 
-flag = False
+#flag = False
 
 def add_spatial_coordinate_map(image_feat_grid):
     image_feat_shape = tf.shape(image_feat_grid)
@@ -35,14 +34,16 @@ def add_spatial_coordinate_map(image_feat_grid):
     return image_feat_with_coords, coords_map
 
 class Modules:
-    def __init__(self, image_feat_grid, word_vecs, encoder_states, num_choices, map_dim):
+    def __init__(self, image_feat_grid, word_vecs, encoder_states, num_choices, map_dim, batch_size):
         self.image_feat_grid_with_coords, self.coords_map = \
             add_spatial_coordinate_map(image_feat_grid)
         self.word_vecs = word_vecs
         self.encoder_states = encoder_states
         self.num_choices = num_choices
         self.map_dim = map_dim
-        self.flag = False
+        self.flag = True
+        self.batch_size = batch_size
+
         # Capture the variable scope for creating all variables
         with tf.variable_scope('module_variables') as module_variable_scope:
             self.module_variable_scope = module_variable_scope
@@ -105,13 +106,40 @@ class Modules:
             return tf.gather(self.encoder_states, batch_idx)
         else:
             return None
-       
+    
+
+    def BreakModule(self, time_idx, batch_idx, map_dim=500, scope='BreakModule',
+        reuse=True):
+        print("Flag in break before setting",self.flag)
+        self.flag = True
+        print("Flag in break after setting",self.flag)
+   
     def FindModule(self, time_idx, batch_idx, map_dim=500, scope='FindModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
-
+        print("Flag value in find",self.flag)
         image_feat_grid = self._slice_image_feat_grid(batch_idx)
         text_param = self._slice_word_vecs(time_idx, batch_idx)
+        D_im = image_feat_grid.get_shape().as_list()[-1]
+        D_txt = text_param.get_shape().as_list()[-1]
+        with tf.variable_scope(self.module_variable_scope):
+           with tf.variable_scope(scope, reuse=reuse):
+               with tf.variable_scope('conv_image'):
+                  W_c = tf.get_variable('weights', [D_im, map_dim],
+                     initializer=tf.contrib.layers.xavier_initializer())
+                  b_c = tf.get_variable('biases', map_dim,
+                     initializer=tf.constant_initializer(0.))
+               with tf.variable_scope('fc_text'):
+                  W_t = tf.get_variable('weights', [D_txt, map_dim],
+                    initializer=tf.contrib.layers.xavier_initializer())
+                  b_t = tf.get_variable('biases', map_dim,
+                     initializer=tf.constant_initializer(0.))
+               with tf.variable_scope('conv_eltwise'):
+                  W_e = tf.get_variable('weights', [map_dim,1],
+                     initializer=tf.contrib.layers.xavier_initializer())
+                  b_e = tf.get_variable('biases', 1,
+                     initializer=tf.constant_initializer(0.))
+
         #print("image_feat_grid shape in find:", image_feat_grid.shape)
         #print("text_param shape in find:", text_param.shape)
         # Mapping: image_feat_grid x text_param -> att_grid
@@ -143,17 +171,17 @@ class Modules:
                         W = image_shape[2]
                         D_im = image_feat_grid.get_shape().as_list()[-1]
                         D_txt = text_param.get_shape().as_list()[-1]
-
+                      
                         # image_feat_mapped has shape [N, H, W, map_dim]
-                        image_feat_mapped = _1x1_conv('conv_image', image_feat_grid,
-                                              output_dim=map_dim)
+                        image_feat_mapped = _1x1_conv('conv_image', image_feat_grid_arr[i],
+                                              output_dim=map_dim, reuse = True)
                         image_feat_mapped = tf.reshape(image_feat_mapped, to_T([N, 1, 1, map_dim]))
 
-                        text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
+                        text_param_mapped = fc('fc_text', text_param, output_dim=map_dim, reuse = True)
                         text_param_mapped = tf.reshape(text_param_mapped, to_T([N, 1, 1, map_dim]))
 
                         eltwise_mult = tf.nn.l2_normalize(image_feat_mapped * text_param_mapped, 3)
-                        att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1)
+                        att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1, reuse = True)
                         #print("att grid in find:", att_grid.shape)
                         att_grid= tf.reshape(att_grid, to_T([N,10,14,1]))
                         #att_grid = tf.expand_dims(att_grid,1)
@@ -182,16 +210,16 @@ class Modules:
                     #image_feat_grid = tf.expand_dims(image_feat_grid,axis= 0)
                     # image_feat_mapped has shape [N, H, W, map_dim]
                     image_feat_mapped = _1x1_conv('conv_image', image_feat_grid,
-                                              output_dim=map_dim)
+                                              output_dim=map_dim, reuse = True)
                     #print("image_feat mapped ",image_feat_mapped.shape)
                     image_feat_mapped = tf.reshape(image_feat_mapped, to_T([N, H, W, map_dim]))
                     #print("image_feat mapped ",image_feat_mapped.shape)
-                    text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
+                    text_param_mapped = fc('fc_text', text_param, output_dim=map_dim, reuse = True)
                     text_param_mapped = tf.reshape(text_param_mapped, to_T([N, 1, 1, map_dim]))
                     #print("text_feat mapped ",text_param_mapped.shape)
                     eltwise_mult = tf.nn.l2_normalize(image_feat_mapped * text_param_mapped, 3)
                     #print("eltwise_mult ",eltwise_mult.shape)
-                    att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1)
+                    att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1, reuse = True)
 
                     att_grid.set_shape(self.att_shape)
                     att_grid = tf.expand_dims(att_grid,1)
@@ -531,9 +559,9 @@ class Modules:
 
         return scores
    
-    def BreakModule(self, time_idx, batch_idx, map_dim=500, scope='BreakModule',
+    '''def BreakModule(self, time_idx, batch_idx, map_dim=500, scope='BreakModule',
         reuse=True):
-        self.flag = True 
+        self.flag = True''' 
             
         
     
@@ -566,9 +594,28 @@ class Modules:
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # input0 is the vector output from Count module
+        print("Flag value in Compare",self.flag)
         image_feat_grid = self._slice_image_feat_grid(batch_idx)
         image_feat_grid = tf.pad(image_feat_grid, tf.convert_to_tensor([[0,0],[0,0],[1,1],[0,0]]),'CONSTANT')
         text_param = self._slice_word_vecs(time_idx, batch_idx)
+        #with tf.variable_scope(self.module_variable_scope):
+        #   with tf.variable_scope(scope, reuse=reuse):
+        with tf.variable_scope('input_vector'):
+            W_c = tf.get_variable('weights', [self.batch_size, map_dim],
+                    initializer=tf.contrib.layers.xavier_initializer())
+            b_c = tf.get_variable('biases', map_dim,
+                    initializer=tf.constant_initializer(0.))
+        with tf.variable_scope('fc_text'):
+            W_t = tf.get_variable('weights', [self.batch_size, map_dim],
+                    initializer=tf.contrib.layers.xavier_initializer())
+            b_t = tf.get_variable('biases', map_dim,
+                    initializer=tf.constant_initializer(0.))
+        with tf.variable_scope('fc_eltwise'):
+            W_e = tf.get_variable('weights', [self.batch_size, map_dim],
+                    initializer=tf.contrib.layers.xavier_initializer())
+            b_e = tf.get_variable('biases', map_dim,
+                    initializer=tf.constant_initializer(0.))
+
         # Mapping: input0 x text_param -> scores
         # Input:
         #   input0: [N, 1]
@@ -581,6 +628,7 @@ class Modules:
         #   2. L2-normalization
         #   3. Linear classification
         if self.flag == True:
+            N = tf.shape(time_idx)[0]
             image_feat_grid_arr=[]
             image_feat_grid_arr0, image_feat_grid_arr1, image_feat_grid_arr2 = tf.split(input_0, num_or_size_splits=3, axis=1)
             image_feat_grid_arr.append(image_feat_grid_arr0)
@@ -591,8 +639,9 @@ class Modules:
                 with tf.variable_scope(self.module_variable_scope):
                     with tf.variable_scope(scope, reuse=reuse):
                         text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
-                        text_param_mapped = tf.reshape(text_param_mapped, to_T([N, 1, 1, map_dim]))
-                        vector_mapped = fc('input_vector_%d'%i,image_feat_grid_arr[i], output_dim = map_dim)
+                        #text_param_mapped = tf.reshape(text_param_mapped, to_T([N, 1, 1, map_dim]))
+                        vector_mapped = fc('input_vector',image_feat_grid_arr[i], output_dim = map_dim)
+                        #print("vector mapped and text mapped",text_param_mapped.shape, vector_mapped.shape)
                         scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=map_dim)
                         #scores.set_shape((1,map_dim))                    
                         scores = tf.expand_dims(scores,1)
@@ -605,7 +654,7 @@ class Modules:
             with tf.variable_scope(self.module_variable_scope):
                 with tf.variable_scope(scope, reuse=reuse):
                     text_param_mapped = fc('fc_text', text_param, output_dim=map_dim)
-                    vector_mapped = fc('input_vector_0',image_feat_grid_arr0, output_dim = map_dim)
+                    vector_mapped = fc('input_vector',image_feat_grid_arr0, output_dim = map_dim)
                     scores = fc('fc_eltwise', text_param_mapped + vector_mapped, output_dim=map_dim)
                     #scores = text_param_mapped + vector_mapped
                     scores = tf.expand_dims(scores,1)
@@ -886,4 +935,3 @@ class Modules:
                 scores = tf.nn.softmax(scores)
                 self.flag = False
         return scores
-
