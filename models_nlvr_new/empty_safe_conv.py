@@ -19,6 +19,11 @@ def empty_safe_1x1_conv(name, bottom, output_dim, reuse=None):
     # weights and biases variables
     with tf.variable_scope(name, reuse=reuse):
         # initialize the variables
+        #if weights_initializer is None:
+        #    weights_initializer = tf.contrib.layers.xavier_initializer_conv2d()
+        #if bias_term and biases_initializer is None:
+        #    biases_initializer = tf.constant_initializer(0.)
+
         weights_initializer = tf.contrib.layers.xavier_initializer()
         biases_initializer = tf.constant_initializer(0.)
         weights = tf.get_variable('weights', [input_dim, output_dim],

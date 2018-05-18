@@ -46,7 +46,7 @@ _module_output_type = {
     '_AttReduce': 'vector',
     '_Compare': 'vector',
     '_CompareReduce': 'vector',
-    '_CompareAtt': 'vector',
+    '_CompareAtt': 'ans',
     '_Combine': 'ans',
     '_ExistAtt': 'ans',
     '_Exist': 'ans'}
@@ -233,7 +233,11 @@ class Assembler:
         # A valid layout must contain <eos>. Assembly fails if it doesn't.
         if not np.any(layout_tokens == self.EOS_idx):
             return self._invalid_expr(layout_tokens, 'cannot find <eos>')
-
+        #print(layout_tokens[0])
+        if  self.module_names[layout_tokens[0]]=='_Break':
+            flag = 1
+        else:
+            flag = 0
         # Decoding Reverse Polish Notation with a stack
         decoding_stack = []
         for t in range(len(layout_tokens)):
@@ -244,7 +248,7 @@ class Assembler:
             module_name = self.module_names[module_idx]
             expr = {'module': module_name,
                     'output_type': _module_output_type[module_name],
-                    'time_idx': t, 'batch_idx': batch_idx}
+                    'time_idx': t, 'batch_idx': batch_idx, 'flag' : flag}
             if module_name == '_Break':
                 input_num = 0
             if module_name in _module_att_input_num.keys():
@@ -269,19 +273,24 @@ class Assembler:
                 else:
                     if stack_top['output_type'] != 'vector':
                         # Invalid expression. Input must be vector
-                        print("Error in module:",stack_top['module'],stack_top['output_type'])
+                        print("Error in module:",module_name,stack_top['module'],stack_top['output_type'])
                         return self._invalid_expr(layout_tokens, 'input incompatible for ' + module_name)
                 expr['input_%d' % n_input] = stack_top
-            if module_name!='_Break':
-                decoding_stack.append(expr)
+            #if module_name!='_Break':
+            decoding_stack.append(expr)
 
         # After decoding the reverse polish expression, there should be exactly
         # one expression in the stack
-        if len(decoding_stack) != 1:
+        if flag ==0 and len(decoding_stack) != 1:
             print("Error: Decoding stack contains:",decoding_stack)
             return self._invalid_expr(layout_tokens, 'final stack size not equal to 1 (%d remains)' % len(decoding_stack))
+        if flag ==1 and len(decoding_stack) != 2:
+            print("Error: Decoding stack contains:",decoding_stack)
+            return self._invalid_expr(layout_tokens, 'final stack size not equal to 2 (%d remains)' % len(decoding_stack))
 
-        result = decoding_stack[0]
+        result = decoding_stack[-1]
+        #print("result",result)
+        #print("decoding_stack",decoding_stack)
         # The result type should be answer, not attention
         if result['output_type'] != 'ans':
             return self._invalid_expr(layout_tokens, 'result type must be ans')

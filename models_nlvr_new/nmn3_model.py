@@ -20,7 +20,7 @@ class NMN3Model:
         embed_dim_nmn, lstm_dim, num_layers, assembler,
         encoder_dropout, decoder_dropout, decoder_sampling,
         num_choices, use_qpn, qpn_dropout, reduce_visfeat_dim=False, new_visfeat_dim=128,
-        use_gt_layout=None, gt_layout_batch=None, map_dim=500, 
+        use_gt_layout=None, gt_layout_batch=None, map_dim=500,batch_size=64, 
         scope='neural_module_network', reuse=None):
 
         with tf.variable_scope(scope, reuse=reuse):
@@ -53,8 +53,9 @@ class NMN3Model:
 
             # Part 2: Neural Module Network
             with tf.variable_scope('layout_execution'):
-                modules = Modules(image_feat_grid, word_vecs, None, num_choices, map_dim)
+                modules = Modules(image_feat_grid, word_vecs, None, num_choices, map_dim, batch_size)
                 self.modules = modules
+                print("Modules has been initialised")
                 # Recursion of modules
                 att_shape = image_feat_grid.get_shape().as_list()[1:-1] + [1]
                 att_shape[1]+=2
@@ -69,88 +70,104 @@ class NMN3Model:
                 att_summary_expr_decl = td.ForwardDeclaration(td.PyObjectType(), td.TensorType(att_summary))
                 break_output_expr_decl = td.ForwardDeclaration(td.PyObjectType(), td.TensorType(break_output))
                 # _Find
-                case_find = td.Record([('time_idx', td.Scalar(dtype='int32')),
-                                       ('batch_idx', td.Scalar(dtype='int32'))])
+                case_find = td.Record([('time_idx', td.Scalar('int32')),
+                                       ('batch_idx', td.Scalar('int32')),
+                                       ('flag', td.Scalar('int32'))])
                 case_find = case_find >> td.Function(modules.FindModule)
                 # _Transform
                 case_transform = td.Record([('input_0', att_expr_decl()),
                                             ('time_idx', td.Scalar('int32')),
-                                            ('batch_idx', td.Scalar('int32'))])
+                                            ('batch_idx', td.Scalar('int32')),
+                                            ('flag', td.Scalar('int32'))])
                 case_transform = case_transform >> td.Function(modules.TransformModule)
                 # _And
                 case_and = td.Record([('input_0', att_expr_decl()),
                                       ('input_1', att_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
-                                      ('batch_idx', td.Scalar('int32'))])
+                                      ('batch_idx', td.Scalar('int32')),
+                                       ('flag', td.Scalar('int32'))])
                 case_and = case_and >> td.Function(modules.AndModule)
                 #_Or
                 case_or = td.Record([('input_0', att_expr_decl()),
                                       ('input_1', att_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
-                                      ('batch_idx', td.Scalar('int32'))])
+                                      ('batch_idx', td.Scalar('int32')),
+                                       ('flag', td.Scalar('int32'))])
                 case_or = case_or >> td.Function(modules.OrModule)
                 #_Not
                 case_not = td.Record([('input_0', att_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
-                                      ('batch_idx', td.Scalar('int32'))])
+                                      ('batch_idx', td.Scalar('int32')),
+                                       ('flag', td.Scalar('int32'))])
                 case_not = case_not >> td.Function(modules.NotModule)
                 # _Describe
                 case_describe = td.Record([('input_0', att_expr_decl()),
                                            ('time_idx', td.Scalar('int32')),
-                                           ('batch_idx', td.Scalar('int32'))])
+                                           ('batch_idx', td.Scalar('int32')),
+                                           ('flag', td.Scalar('int32'))])
                 case_describe = case_describe >> \
                     td.Function(modules.DescribeModule)
                 #_Count
                 case_count = td.Record([('input_0', att_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
-                                      ('batch_idx', td.Scalar('int32'))])
+                                      ('batch_idx', td.Scalar('int32')),
+                                       ('flag', td.Scalar('int32'))])
                 case_count = case_count >> td.Function(modules.CountModule)
                 #_Find_SameProperty
                 case_sameproperty = td.Record([('input_0', att_expr_decl()),
                                       ('input_1', att_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
-                                      ('batch_idx', td.Scalar('int32'))])
+                                      ('batch_idx', td.Scalar('int32')),
+                                       ('flag', td.Scalar('int32'))])
                 case_sameproperty = case_sameproperty >> td.Function(modules.SamePropertyModule)
                  #_Break
                 case_break = td.Record([('time_idx', td.Scalar('int32')),
-                                      ('batch_idx', td.Scalar('int32'))])
+                                      ('batch_idx', td.Scalar('int32')),
+                                       ('flag', td.Scalar('int32'))])
                 case_break = case_break >> td.Function(modules.BreakModule)
                  #_AttReduce
                 case_att_reduce = td.Record([('input_0', att_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
-                                      ('batch_idx', td.Scalar('int32'))])
+                                      ('batch_idx', td.Scalar('int32')),
+                                       ('flag', td.Scalar('int32'))])
                 case_att_reduce = case_att_reduce >> td.Function(modules.AttReduceModule)
                 #_Compare
                 case_compare = td.Record([('input_0', vector_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
-                                      ('batch_idx', td.Scalar('int32'))])
+                                      ('batch_idx', td.Scalar('int32')),
+                                       ('flag', td.Scalar('int32'))])
                 case_compare = case_compare >> td.Function(modules.CompareModule)
                 #_CompareReduce
                 case_compare_reduce = td.Record([('input_0', vector_expr_decl()),
                                       ('input_1', vector_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
-                                      ('batch_idx', td.Scalar('int32'))])
+                                      ('batch_idx', td.Scalar('int32')),
+                                       ('flag', td.Scalar('int32'))])
                 case_compare_reduce = case_compare_reduce >> td.Function(modules.CompareReduceModule)
                 # _CompareAtt
                 case_compare_att = td.Record([('input_0', att_expr_decl()),
                                       ('input_1', att_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
-                                      ('batch_idx', td.Scalar('int32'))])
+                                      ('batch_idx', td.Scalar('int32')),
+                                       ('flag', td.Scalar('int32'))])
                 case_compare_att = case_compare_att >> td.Function(modules.CompareAttModule)
                 #_Combine
                 case_combine = td.Record([('input_0', vector_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
-                                      ('batch_idx', td.Scalar('int32'))])
+                                      ('batch_idx', td.Scalar('int32')),
+                                       ('flag', td.Scalar('int32'))])
                 case_combine = case_combine >> td.Function(modules.CombineModule)
                 #_ExistAtt
                 case_exist_att = td.Record([('input_0', att_summary_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
-                                      ('batch_idx', td.Scalar('int32'))])
+                                      ('batch_idx', td.Scalar('int32')),
+                                       ('flag', td.Scalar('int32'))])
                 case_exist_att = case_exist_att >> td.Function(modules.ExistAttModule)
                 #_Exist
                 case_exist = td.Record([('input_0', vector_expr_decl()),
                                       ('time_idx', td.Scalar('int32')),
-                                      ('batch_idx', td.Scalar('int32'))])
+                                      ('batch_idx', td.Scalar('int32')),
+                                       ('flag', td.Scalar('int32'))])
                 case_exist = case_exist >> td.Function(modules.ExistModule)
                 
                 recursion_cases_break = td.OneOf(td.GetItem('module'),{
@@ -170,8 +187,8 @@ class NMN3Model:
                     '_Compare': case_compare,
                     '_CompareReduce': case_compare_reduce,
                     '_Count': case_count,
-                    '_Find_SameProperty': case_sameproperty,
-                    '_CompareAtt': case_compare_att
+                    '_Find_SameProperty': case_sameproperty
+                    #'_CompareAtt': case_compare_att
                     })
                 vector_expr_decl.resolve_to(recursion_cases_vector)
 
@@ -187,8 +204,9 @@ class NMN3Model:
                     '_Combine': case_combine,
                     '_ExistAtt': case_exist_att,
                     '_Exist': case_exist,
+                    '_CompareAtt': case_compare_att,
                     INVALID_EXPR: dummy_scores})
-
+                print("Before compiler creation")
                 # compile and get the output scores
                 self.compiler = td.Compiler.create(output_scores)
                 self.scores_nmn = self.compiler.output_tensors[0]
