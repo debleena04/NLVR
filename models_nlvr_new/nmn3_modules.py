@@ -56,7 +56,7 @@ class Modules:
         D_word = word_vecs.get_shape().as_list()[-1]
         self.word_vecs_flat = tf.reshape(
             word_vecs, to_T([T_full*self.N_full, D_word]))
-
+        print("map dims in init",map_dim,self.map_dim)
         # create each dummy modules here so that weights won't get initialized again
         att_shape = self.image_feat_grid_with_coords.get_shape().as_list()[:-1] + [1]
         att_shape[2]+=2
@@ -72,21 +72,21 @@ class Modules:
         batch_idx = tf.placeholder(tf.int32, [None]) 
         flag = tf.placeholder(tf.int32, [None])
         input_vector = tf.placeholder(tf.float32, self.vector_shape)
-        self.FindModule(time_idx, batch_idx,flag, map_dim, reuse=False)
-        self.TransformModule(input_att, time_idx, batch_idx, flag, map_dim, reuse=False)
+        self.FindModule(time_idx, batch_idx,flag, self.map_dim, reuse=False)
+        self.TransformModule(input_att, time_idx, batch_idx, flag, self.map_dim, reuse=False)
         self.AndModule(input_att, input_att, time_idx, batch_idx, flag, reuse=False)
         self.OrModule(input_att, input_att, time_idx, batch_idx, flag, reuse=False)
         self.NotModule(input_att, time_idx, batch_idx, flag, reuse=False)
         self.DescribeModule(input_att, time_idx, batch_idx, flag, reuse=False)
-        self.CountModule(input_att, time_idx, batch_idx, flag, map_dim, reuse=False)
-        self.SamePropertyModule(input_att, input_att, time_idx, batch_idx, flag, map_dim, reuse=False)
-        self.BreakModule(time_idx, batch_idx, flag, map_dim, reuse=False)
-        self.AttReduceModule(input_att, time_idx, batch_idx, flag, map_dim, reuse=False)
-        self.CompareModule(input_vector, time_idx, batch_idx, flag, map_dim, reuse=False)
-        self.CompareReduceModule(input_vector, input_vector, time_idx, batch_idx, flag, map_dim, reuse=False)
-        self.CompareAttModule(input_att, input_att, time_idx, batch_idx, flag, map_dim, reuse=False)
-        self.CombineModule(input_vector, time_idx, batch_idx, flag, map_dim, reuse=False)
-        self.ExistAttModule(input_att_summary, time_idx, batch_idx, flag, map_dim, reuse=False)
+        self.CountModule(input_att, time_idx, batch_idx, flag, self.map_dim, reuse=False)
+        self.SamePropertyModule(input_att, input_att, time_idx, batch_idx, flag, self.map_dim, reuse=False)
+        self.BreakModule(time_idx, batch_idx, flag, self.map_dim, reuse=False)
+        self.AttReduceModule(input_att, time_idx, batch_idx, flag, self.map_dim, reuse=False)
+        self.CompareModule(input_vector, time_idx, batch_idx, flag, self.map_dim, reuse=False)
+        self.CompareReduceModule(input_vector, input_vector, time_idx, batch_idx, flag, self.map_dim, reuse=False)
+        self.CompareAttModule(input_att, input_att, time_idx, batch_idx, flag, self.map_dim, reuse=False)
+        self.CombineModule(input_vector, time_idx, batch_idx, flag, self.map_dim, reuse=False)
+        self.ExistAttModule(input_att_summary, time_idx, batch_idx, flag, self.map_dim, reuse=False)
         self.ExistModule(input_vector, time_idx, batch_idx, flag, reuse=False)
 
     def _slice_image_feat_grid(self, batch_idx):
@@ -125,7 +125,7 @@ class Modules:
         flag =True
         print("Flag in break after setting",flag)
    
-    def FindModule(self, time_idx, batch_idx, flag, map_dim=500, scope='FindModule',
+    def FindModule(self, time_idx, batch_idx, flag, map_dim=32, scope='FindModule',
         reuse=True):
         #global flag
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
@@ -259,7 +259,7 @@ class Modules:
         return att_grid
 
     def TransformModule(self, input_0, time_idx, batch_idx, flag, kernel_size=5,
-        map_dim=500, scope='TransformModule', reuse=True):
+        map_dim=32, scope='TransformModule', reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         print("Flag value in transform", flag)
         image_feat_grid = self._slice_image_feat_grid(batch_idx)
@@ -523,7 +523,7 @@ class Modules:
 
        
     
-    def CountModule(self, input_0, time_idx, batch_idx, flag, map_dim=500, 
+    def CountModule(self, input_0, time_idx, batch_idx, flag, map_dim=32, 
         scope='CountModule', reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
 
@@ -618,7 +618,7 @@ class Modules:
         return score
 
     def SamePropertyModule(self, input_0, input_1, time_idx, batch_idx, flag,
-        map_dim=500, scope='SamePropertyModule', reuse=True):
+        map_dim=32, scope='SamePropertyModule', reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # It is only used for the layouts which have "Break"
         print("Flag value in samepropety", flag)
@@ -683,7 +683,7 @@ class Modules:
             
         
     
-    def AttReduceModule(self, input_0, time_idx, batch_idx, flag, map_dim=500,
+    def AttReduceModule(self, input_0, time_idx, batch_idx, flag, map_dim=32,
         scope='AttReduceModule', reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
 
@@ -709,7 +709,7 @@ class Modules:
                 #scores = fc('fc_scores', att_reduced, output_dim=map_dim)
         return att_reduced
     
-    def CompareModule(self, input_0, time_idx, batch_idx, flag, map_dim=500, scope='CompareModule',
+    def CompareModule(self, input_0, time_idx, batch_idx, flag, map_dim=32, scope='CompareModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # input0 is the vector output from Count module
@@ -804,7 +804,7 @@ class Modules:
         score = tf.cond(tf.reduce_all(tf.equal(flag, tf.constant(1))), if_true, if_false)
         return score
 
-    def CompareReduceModule(self, input_0, input_1, time_idx, batch_idx, flag, map_dim=500, scope='CompareReduceModule',
+    def CompareReduceModule(self, input_0, input_1, time_idx, batch_idx, flag, map_dim=32, scope='CompareReduceModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # input0 is the vector output from Count module
@@ -887,7 +887,7 @@ class Modules:
         return score
 
             
-    def CompareAttModule(self, input_0, input_1, time_idx, batch_idx, flag, map_dim=500, scope='CompareAttModule',
+    def CompareAttModule(self, input_0, input_1, time_idx, batch_idx, flag, map_dim=32, scope='CompareAttModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # input0 is the vector output from Count module
@@ -963,13 +963,20 @@ class Modules:
                         print("att_reduced shape",att_reduced.shape)
                         #with tf.variable_scope(self.module_variable_scope):
                         #with tf.variable_scope(scope, reuse=reuse):
-                        scores.append( fc('fc_eltwise', att_reduced, output_dim=1,reuse = True))
+                        score = fc('fc_eltwise', att_reduced, output_dim=1,reuse = True)
+                        #score = tf.nn.sigmoid(score)
+                        scores.append(score)
+                        #scores.append(tf.nn.sigmoid(fc('fc_eltwise', att_reduced, output_dim=1,reuse = True)))
             score = tf.convert_to_tensor(scores)
             print("score shape",score.shape)
-            score = tf.reduce_max(scores,axis=0)
-            print("score shape",score.shape)
+            score = tf.reduce_max(score,axis=0)
+            #score = tf.reshape(score, [-1])
+            #score = tf.sigmoid(score)
+            #print("compare att score shape",score.shape)
+            score = tf.reshape(tf.sigmoid(score),[-1])
+            print("compare att score shape after reshape",score.shape)
             score = tf.convert_to_tensor([score, 1- score])
-            score=tf.reshape(score,[-1,2])
+            score=tf.transpose(score,[1,0])
             print("score shape",score.shape)
             return score
         
@@ -1008,9 +1015,12 @@ class Modules:
             with tf.variable_scope(self.module_variable_scope):
                 with tf.variable_scope(scope, reuse=reuse):
                     scores = fc('fc_eltwise', att_reduced, output_dim=1, reuse = True)
+                    scores = tf.nn.sigmoid(scores)
+                   
             print("score shape",scores.shape)
+            scores =  tf.reshape(scores,[-1])
             score = tf.convert_to_tensor([scores, 1-scores])
-            score = tf.reshape(score,[-1,2])
+            score = tf.transpose(score,[1,0])
             print("score shape",score.shape)
             return score
         #score = tf.cond(tf.reshape(tf.equal(flag,1),[]), if_true, if_false)
@@ -1031,7 +1041,7 @@ class Modules:
         score = tf.cond(tf.reduce_all(tf.equal(flag, tf.constant(1))), if_true, if_false)
         return score
     
-    def CombineModule(self, input_0, time_idx, batch_idx, flag, map_dim=500, scope='CombineModule',
+    def CombineModule(self, input_0, time_idx, batch_idx, flag, map_dim=32, scope='CombineModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # input0 is the vector output to be combined
@@ -1092,6 +1102,7 @@ class Modules:
                     #score = tf.matmul(text_param_softmax,tf.matrix_transpose(scores_matrix))
                     #score = tf.tensordot(text_param_softmax,scores_matrix,axes=1)
                     score = tf.reduce_sum(tf.convert_to_tensor(text_param_softmax*scores_matrix),axis=1)
+                    print("score shape in combine",score.shape)
                     scores = tf.transpose(tf.convert_to_tensor([score,1-score]),[1,0])
                     #print("score shape:",score.shape)
                     #print("Combine scores shape",scores.shape)
@@ -1101,7 +1112,7 @@ class Modules:
         #flag = False
         return scores
     
-    def ExistAttModule(self, input_0, time_idx, batch_idx, flag, map_dim=500, scope='ExistAttModule',
+    def ExistAttModule(self, input_0, time_idx, batch_idx, flag, map_dim=32, scope='ExistAttModule',
         reuse=True):
         # In TF Fold, batch_idx and time_idx are both [N_batch, 1] tensors
         # input0 is the attention output to be combined
@@ -1190,8 +1201,12 @@ class Modules:
         print("Flag value in exist", flag)
         with tf.variable_scope(self.module_variable_scope):
             with tf.variable_scope(scope, reuse=reuse):
-                scores = fc('fc_scores', input_0, output_dim=self.num_choices)
-                scores = tf.nn.softmax(scores)
+                score = fc('fc_scores', input_0, output_dim=self.num_choices)
+                scores = tf.nn.softmax(score)
+                #scores = tf.ones([64,2])
+                #scores = tf.reshape(scores,score.shape)
+                #scores = tf.clip_by_value(score,1,1)
+                #scores = tf.nn.sigmoid(scores)
                 #self.flag = False
         #global flag
         #flag = False

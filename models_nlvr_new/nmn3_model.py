@@ -210,7 +210,7 @@ class NMN3Model:
                 # compile and get the output scores
                 self.compiler = td.Compiler.create(output_scores)
                 self.scores_nmn = self.compiler.output_tensors[0]
-
+            
             # Add a question prior network if specified
             self.use_qpn = use_qpn
             self.qpn_dropout = qpn_dropout
