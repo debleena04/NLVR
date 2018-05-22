@@ -30,11 +30,11 @@ _module_vector_input_num = {
     '_Combine': 1,
     '_ExistAtt': 1,
     '_Exist': 1,
-    'Break' : 0 }
+    '_Break' : 0 }
 
 # output type of each module
 _module_output_type = {
-    '_Break': 'vector',
+    '_Break': '',
     '_Find': 'att',
     '_Transform': 'att',
     '_And': 'att',
@@ -235,8 +235,10 @@ class Assembler:
             return self._invalid_expr(layout_tokens, 'cannot find <eos>')
         #print(layout_tokens[0])
         if  self.module_names[layout_tokens[0]]=='_Break':
+            #flag = np.array([1])
             flag = 1
         else:
+            #flag = np.array([0])
             flag = 0
         # Decoding Reverse Polish Notation with a stack
         decoding_stack = []
@@ -246,12 +248,22 @@ class Assembler:
             if module_idx == self.EOS_idx:
                 break
             module_name = self.module_names[module_idx]
+            #if module_name == '_Break':
+            #    print('Adding Break', (t,batch_idx))
+            '''if self.module_names[layout_tokens[0]]=='_Break':
+                expr = {'module': module_name,
+                    'output_type': _module_output_type[module_name],
+                    'time_idx': t-1, 'batch_idx': batch_idx, 'flag' : flag}
+            else:
+                expr = {'module': module_name,
+                    'output_type': _module_output_type[module_name],
+                    'time_idx': t, 'batch_idx': batch_idx, 'flag' : flag}'''
             expr = {'module': module_name,
                     'output_type': _module_output_type[module_name],
                     'time_idx': t, 'batch_idx': batch_idx, 'flag' : flag}
             if module_name == '_Break':
                 input_num = 0
-            if module_name in _module_att_input_num.keys():
+            elif module_name in _module_att_input_num.keys():
                 input_num = _module_att_input_num[module_name]
             else: 
                 input_num = _module_vector_input_num[module_name]
@@ -276,17 +288,21 @@ class Assembler:
                         print("Error in module:",module_name,stack_top['module'],stack_top['output_type'])
                         return self._invalid_expr(layout_tokens, 'input incompatible for ' + module_name)
                 expr['input_%d' % n_input] = stack_top
-            #if module_name!='_Break':
-            decoding_stack.append(expr)
+            if module_name!='_Break':
+                decoding_stack.append(expr)
 
         # After decoding the reverse polish expression, there should be exactly
         # one expression in the stack
-        if flag ==0 and len(decoding_stack) != 1:
-            print("Error: Decoding stack contains:",decoding_stack)
+        #print("decoding stack len, ",len(decoding_stack))
+        '''if flag ==0 and len(decoding_stack)!= 1:
+            print("Error: No break and Decoding stack contains:",decoding_stack)
             return self._invalid_expr(layout_tokens, 'final stack size not equal to 1 (%d remains)' % len(decoding_stack))
         if flag ==1 and len(decoding_stack) != 2:
             print("Error: Decoding stack contains:",decoding_stack)
-            return self._invalid_expr(layout_tokens, 'final stack size not equal to 2 (%d remains)' % len(decoding_stack))
+            return self._invalid_expr(layout_tokens, 'final stack size not equal to 2 (%d remains)' % len(decoding_stack))'''
+        if len(decoding_stack)!=1:
+            print("Error: No break and Decoding stack contains:",decoding_stack)
+            return self._invalid_expr(layout_tokens, 'final stack size not equal to 1 (%d remains)' % len(decoding_stack))
 
         result = decoding_stack[-1]
         #print("result",result)

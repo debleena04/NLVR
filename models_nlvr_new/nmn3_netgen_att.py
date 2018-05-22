@@ -5,14 +5,14 @@ from tensorflow import convert_to_tensor as to_T
 
 from models_nlvr_new.cnn import fc_layer as fc, conv_relu_layer as conv_relu
 
-def _get_valid_tokens(X, W, b):
+'''def _get_valid_tokens(X, W, b):
     constraints_validity = tf.greater_equal(tf.tensordot(X, W, axes=1) - b, 0)
     token_validity = tf.reduce_all(constraints_validity, axis=2)
     return tf.stop_gradient(token_validity)
 
 def _update_decoding_state(X, s, P):
     X = X + tf.nn.embedding_lookup(P, s)  # X = X + S P
-    return tf.stop_gradient(X)
+    return tf.stop_gradient(X)'''
 
 def _get_lstm_cell(num_layers, lstm_dim, apply_dropout):
     if isinstance(lstm_dim, list):  # Different layers have different dimensions
@@ -58,9 +58,9 @@ class AttentionSeq2Seq:
         self.num_layers = num_layers
         self.EOS_token = assembler.EOS_idx
         # decoding transition variables
-        self.P = to_T(assembler.P, dtype=tf.int32)
+        '''self.P = to_T(assembler.P, dtype=tf.int32)
         self.W = to_T(assembler.W, dtype=tf.int32)
-        self.b = to_T(assembler.b, dtype=tf.int32)
+        self.b = to_T(assembler.b, dtype=tf.int32)'''
 
         self.encoder_dropout = encoder_dropout
         self.decoder_dropout = decoder_dropout
@@ -166,6 +166,9 @@ class AttentionSeq2Seq:
             mask_range = tf.reshape(
                 tf.range(self.decoder_num_vocab, dtype=tf.int32),
                 [1, -1])
+            all_eos_pred = EOS_token * tf.ones(to_T([N]), tf.int32)
+            all_one_prob = tf.ones(to_T([N]), tf.float32)
+            all_zero_entropy = tf.zeros(to_T([N]), tf.float32)
             # all_low_scores = -8*tf.ones(to_T([N, self.decoder_num_vocab]), tf.float32)
             # all_very_low_scores = -1e8*tf.ones(to_T([N, self.decoder_num_vocab]), tf.float32)
             # all_zero_info = tf.zeros(to_T([N, self.decoder_num_vocab]), tf.float32)
@@ -197,7 +200,7 @@ class AttentionSeq2Seq:
                         tf.concat([cell_output, d2], axis=1),
                         W_y, b_y)
 
-                    decoding_state = loop_state[2]
+                    '''decoding_state = loop_state[2]
                     # token_validity has shape [N, num_vocab]
                     token_validity = _get_valid_tokens(decoding_state, self.W, self.b)
                     token_validity.set_shape([None, self.decoder_num_vocab])
@@ -206,20 +209,24 @@ class AttentionSeq2Seq:
                         # and treat all tokens as valid
                         token_validity = tf.logical_or(token_validity, use_gt_layout)
 
-                    validity_mult = tf.cast(token_validity, tf.float32)
+                    validity_mult = tf.cast(token_validity, tf.float32)'''
 
                     # predict the next token (behavior depending on parameters)
                     if sampling:
-                        token_scores_valid = token_scores - (1-validity_mult) * 50
+                        #token_scores_valid = token_scores - (1-validity_mult) * 50
+                        logits = token_scores
                         # token_scores_valid = tf.where(token_validity, token_scores, all_low_scores)
                         # predicted_token has shape [N].
-                        sampled_token = tf.cast(tf.reshape(
-                                tf.multinomial(token_scores_valid, 1), [-1]), tf.int32)
+                        '''sampled_token = tf.cast(tf.reshape(
+                                tf.multinomial(token_scores_valid, 1), [-1]), tf.int32)'''
+                        predicted_token = tf.cast(tf.reshape(
+                                tf.multinomial(token_scores, 1), [-1]), tf.int32)
+
 
                         # make sure that the predictions are ALWAYS valid (it can be invalid with very small prob)
                         # If not, just fall back to min cases
                         # pred_mask has shape [N, num_vocab]
-                        sampled_mask = tf.equal(mask_range, tf.reshape(sampled_token, [-1, 1]))
+                        '''sampled_mask = tf.equal(mask_range, tf.reshape(sampled_token, [-1, 1]))
                         is_sampled_valid = tf.reduce_any(
                             tf.logical_and(sampled_mask, token_validity),
                             axis=1)
@@ -229,23 +236,25 @@ class AttentionSeq2Seq:
                         token_scores_valid = tf.where(token_validity, token_scores,
                                                       tf.ones_like(token_scores)*(min_score-1))
                         max_score_token = tf.cast(tf.argmax(token_scores_valid, 1), tf.int32)
-                        predicted_token = tf.where(is_sampled_valid, sampled_token, max_score_token)
+                        predicted_token = tf.where(is_sampled_valid, sampled_token, max_score_token)'''
                     else:
-                        min_score = tf.reduce_min(token_scores)
+                        '''min_score = tf.reduce_min(token_scores)
                         token_scores_valid = tf.where(token_validity, token_scores,
-                                                      tf.ones_like(token_scores)*(min_score-1))
+                                                      tf.ones_like(token_scores)*(min_score-1))'''
                         # predicted_token has shape [N]
-                        predicted_token = tf.cast(tf.argmax(token_scores_valid, 1), tf.int32)
+                        predicted_token = tf.cast(tf.argmax(token_scores, 1), tf.int32)
+                        #predicted_token = tf.cast(tf.argmax(token_scores_valid, 1), tf.int32)
+
                     if use_gt_layout is not None:
                         predicted_token = (gt_layout_batch[time-1] * gt_layout_mult
                                            + predicted_token * pred_layout_mult)
 
                     # a robust version of softmax
                     # all_token_probs has shape [N, num_vocab]
-                    all_token_probs = tf.nn.softmax(token_scores) * validity_mult
+                    #all_token_probs = tf.nn.softmax(token_scores) * validity_mult
                     #tf.check_numerics(all_token_probs, 'NaN/Inf before div')
                     
-                    all_token_probs = all_token_probs / tf.reduce_sum(all_token_probs, axis=1, keep_dims=True)
+                    #all_token_probs = all_token_probs / tf.reduce_sum(all_token_probs, axis=1, keep_dims=True)
                     #tf.check_numerics(all_token_probs, 'NaN/Inf after div')
 
                     # mask has shape [N, num_vocab]
@@ -254,16 +263,29 @@ class AttentionSeq2Seq:
                     # although token_prob is not needed for predicting the next token
                     # it is needed in output (for policy gradient training)
                     # [N, num_vocab]
+                    all_token_probs = tf.nn.softmax(token_scores)
                     token_prob = tf.reduce_sum(all_token_probs * tf.cast(mask, tf.float32), axis=1)
                     #tf.assert_positive(token_prob)
                     #tf.assert_positive(all_token_probs + (1-validity_mult))
-                    neg_entropy = tf.reduce_sum(
+                    '''neg_entropy = tf.reduce_sum(
                         all_token_probs * tf.log(tf.clip_by_value(all_token_probs,1e-10,1.0) + (1-validity_mult)),
-                        axis=1)
-
+                        axis=1)'''
+                    neg_entropy = tf.reduce_sum(all_token_probs *
+                     tf.log(all_token_probs), axis=1)
+                    is_eos_predicted = loop_state[2]
+                    predicted_token_old = predicted_token
+                    # if <eos> has already been predicted, now predict <eos> with
+                    # prob 1
+                    predicted_token = tf.where(is_eos_predicted, all_eos_pred,
+                                               predicted_token)
+                    token_prob = tf.where(is_eos_predicted, all_one_prob,
+                                          token_prob)
+                    neg_entropy = tf.where(is_eos_predicted, all_zero_entropy, neg_entropy)
+                    is_eos_predicted = tf.logical_or(is_eos_predicted,
+                     tf.equal(predicted_token_old, EOS_token))
                     # update states
-                    updated_decoding_state = _update_decoding_state(
-                        decoding_state, predicted_token, self.P)
+                    '''updated_decoding_state = _update_decoding_state(
+                        decoding_state, predicted_token, self.P)'''
 
                     # the prediction is from the cell output of the last step
                     # timestep (t-1), feed it as input into timestep t
@@ -283,19 +305,19 @@ class AttentionSeq2Seq:
                         infer_shape=False)
                     token_prob_array = tf.TensorArray(dtype=tf.float32, size=T_max,
                         infer_shape=False)
-                    init_decoding_state = tf.tile(to_T([[0, 0, 0, T_max]], dtype=tf.int32), to_T([N, 1]))
+                    #init_decoding_state = tf.tile(to_T([[0, 0, 0, T_max]], dtype=tf.int32), to_T([N, 1]))
                     att_array = tf.TensorArray(dtype=tf.float32, size=T_max,
                         infer_shape=False)
                     next_loop_state = (predicted_token_array,
                                        token_prob_array,
-                                       init_decoding_state,
+                                       tf.zeros(to_T([N]), dtype = tf.bool),
                                        tf.zeros(to_T([N]), dtype=tf.float32),
                                        att_array)
                 else:  # time > 0
                     t_write = time-1
                     next_loop_state = (loop_state[0].write(t_write, predicted_token),
                                        loop_state[1].write(t_write, token_prob),
-                                       updated_decoding_state,
+                                       is_eos_predicted,
                                        loop_state[3] + neg_entropy,
                                        loop_state[4].write(t_write, att))
                 return (elements_finished, next_input, next_cell_state, cell_output,

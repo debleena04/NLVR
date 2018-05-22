@@ -70,7 +70,7 @@ class Modules:
         input_att = tf.placeholder(tf.float32, flatten_att_shape)
         time_idx = tf.placeholder(tf.int32, [None])
         batch_idx = tf.placeholder(tf.int32, [None]) 
-        flag = tf.placeholder(tf.int32, [None])
+        flag = tf.placeholder(tf.int32)
         input_vector = tf.placeholder(tf.float32, self.vector_shape)
         self.FindModule(time_idx, batch_idx,flag, map_dim, reuse=False)
         self.TransformModule(input_att, time_idx, batch_idx, flag, map_dim, reuse=False)
@@ -103,11 +103,6 @@ class Modules:
         joint_index = time_idx*self.N_full + batch_idx
         
         return tf.gather(self.word_vecs_flat, joint_index)
-    
-    def _slice_flag(self,flag,batch_idx):
-        print("batch idx shape",batch_idx.shape)
-        flag_mapped =  tf.gather(flag,batch_idx)
-        return tf.reshape(flag_mapped, [])
 
     def _slice_encoder_states(self, batch_idx):
         # In TF Fold, batch_idx is a [N_batch, 1] tensor
@@ -242,20 +237,10 @@ class Modules:
             return att_grid
         #print("Flag shape",flag.shape)
         #att_grid = tf.cond(tf.equal(flag,1), if_true, if_false)
-        #flag_current = tf.cast(tf.gather(flag, batch_idx),dtype = tf.bool)
-        #N = tf.shape(time_idx)[0]
-        #flag = tf.reshape(flag, to_T([N,1]))
-        #flag_current = self._slice_flag(flag,batch_idx)
-        #flag_current = tf.gather(flag, batch_idx)
-        #flag_current = tf.gather(flag,[0])
-        #flag_current = tf.reshape(flag, [])
-        #print("flag type in flag:",(flag_current))
-        #flag_current = tf.cast(flag_current,dtype = tf.bool)
-        #print("Flag current shape",flag_current.shape)
-        #att_grid = tf.cond(tf.convert_to_tensor(flag_current==1), if_true, if_false)
-        att_grid = tf.cond(tf.reduce_all(tf.equal(flag,tf.constant(1))), if_true, if_false)
-        #att_grid = tf.cond(flag_current, if_true, if_false)
-        #att_grid = tf.cond(tf.equal(tf.reshape(flag,[]), tf.constant(1)), if_true, if_false)
+        flag_current = tf.cast(tf.gather(flag, batch_idx),dtype = tf.bool)
+        print("Flag shape",flag_current.shape)
+        #att_grid = tf.cond(tf.convert_to_tensor(flag_current==tf.constant(1)), if_true, if_false)
+        att_grid = tf.cond(flag_current, if_true, if_false)
         return att_grid
 
     def TransformModule(self, input_0, time_idx, batch_idx, flag, kernel_size=5,
@@ -307,41 +292,41 @@ class Modules:
             image_feat_grid_arr.append(image_feat_grid_arr2)
             att_grid_arr = []
             for i in range(3):
-               with tf.variable_scope(self.module_variable_scope):
-                  with tf.variable_scope(scope, reuse=reuse):
-                      image_shape = tf.shape(input_arr[i])
-                      N = tf.shape(time_idx)[0]
-                      H = image_shape[2]
-                      W = image_shape[3]
-                      D_im = image_feat_grid.get_shape().as_list()[-1]
-                      D_txt = text_param.get_shape().as_list()[-1]
+                 with tf.variable_scope(self.module_variable_scope):
+                    with tf.variable_scope(scope, reuse=reuse):
+                        image_shape = tf.shape(input_arr[i])
+                        N = tf.shape(time_idx)[0]
+                        H = image_shape[2]
+                        W = image_shape[3]
+                        D_im = image_feat_grid.get_shape().as_list()[-1]
+                        D_txt = text_param.get_shape().as_list()[-1]
 
-                      # image_feat_mapped has shape [N, H, W, map_dim]
-                      image_feat_mapped = _1x1_conv('conv_image', image_feat_grid_arr[i],
+                       # image_feat_mapped has shape [N, H, W, map_dim]
+                        image_feat_mapped = _1x1_conv('conv_image', image_feat_grid_arr[i],
                                               output_dim=map_dim, reuse =True)
 
-                      text_param_mapped = fc('fc_text', text_param, output_dim=map_dim, reuse =True)
-                      text_param_mapped = tf.reshape(text_param_mapped, to_T([N, 1, 1, map_dim]))
+                        text_param_mapped = fc('fc_text', text_param, output_dim=map_dim, reuse =True)
+                        text_param_mapped = tf.reshape(text_param_mapped, to_T([N, 1, 1, map_dim]))
 
-                      att_softmax = tf.reshape(
+                        att_softmax = tf.reshape(
                             tf.nn.softmax(tf.reshape(input_arr[i], to_T([ N, H*W]))),
                             to_T([ N, H, W, 1]))
-                      # att_feat has shape [N, D_vis]
-                      att_feat = tf.reduce_sum(image_feat_grid_arr[i] * att_softmax, axis=[1, 2])
-                      att_feat_mapped = tf.reshape(
+                        # att_feat has shape [N, D_vis]
+                        att_feat = tf.reduce_sum(image_feat_grid_arr[i] * att_softmax, axis=[1, 2])
+                        att_feat_mapped = tf.reshape(
                             fc('fc_att', att_feat, output_dim=map_dim, reuse =True), to_T([N, 1, 1, map_dim]))
  
-                      eltwise_mult = tf.nn.l2_normalize(
+                        eltwise_mult = tf.nn.l2_normalize(
                             image_feat_mapped * text_param_mapped * att_feat_mapped, 3)
-                      att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1, reuse =True)
+                        att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1, reuse =True)
                        
-                      att_grid= tf.reshape(att_grid, to_T([N,10,14,1]))
-                      #att_grid = tf.expand_dims(att_grid,1)
-                      #print("att grid shape",att_grid.shape)
-                      att_grid = tf.tile(att_grid,[1,1,3,1])
-                      att_grid_arr.append(att_grid)
-                      #print("att grid shape after tiling",att_grid.shape)
-                      #print(att_grid_arr.shape)
+                        att_grid= tf.reshape(att_grid, to_T([N,10,14,1]))
+                        #att_grid = tf.expand_dims(att_grid,1)
+                        #print("att grid shape",att_grid.shape)
+                        att_grid = tf.tile(att_grid,[1,1,3,1])
+                        att_grid_arr.append(att_grid)
+                        #print("att grid shape after tiling",att_grid.shape)
+                        #print(att_grid_arr.shape)
             arr = tf.convert_to_tensor(att_grid_arr)
             arr =tf.transpose(arr,[1,0,2,3,4])
             return arr       
@@ -365,55 +350,39 @@ class Modules:
             input_arr0, input_arr1, input_arr2 = tf.split(input_0, num_or_size_splits=3, axis=1)
             image_feat_grid = tf.pad(image_feat_grid, tf.convert_to_tensor([[0,0],[0,0],[1,1],[0,0]]),'CONSTANT')
             with tf.variable_scope(self.module_variable_scope):
-               with tf.variable_scope(scope, reuse=reuse):
-                   image_shape = tf.shape(image_feat_grid)
-                   N = tf.shape(time_idx)[0]
-                   H = image_shape[1]
-                   W = image_shape[2]
-                   D_im = image_feat_grid.get_shape().as_list()[-1]
-                   D_txt = text_param.get_shape().as_list()[-1]
+                with tf.variable_scope(scope, reuse=reuse):
+                    image_shape = tf.shape(image_feat_grid)
+                    N = tf.shape(time_idx)[0]
+                    H = image_shape[1]
+                    W = image_shape[2]
+                    D_im = image_feat_grid.get_shape().as_list()[-1]
+                    D_txt = text_param.get_shape().as_list()[-1]
 
-                   # image_feat_mapped has shape [N, H, W, map_dim]
-                   image_feat_mapped = _1x1_conv('conv_image', image_feat_grid,
+                    # image_feat_mapped has shape [N, H, W, map_dim]
+                    image_feat_mapped = _1x1_conv('conv_image', image_feat_grid,
                                               output_dim=map_dim, reuse =True)
 
-                   text_param_mapped = fc('fc_text', text_param, output_dim=map_dim, reuse =True)
-                   text_param_mapped = tf.reshape(text_param_mapped, to_T([N, 1, 1, map_dim]))
+                    text_param_mapped = fc('fc_text', text_param, output_dim=map_dim, reuse =True)
+                    text_param_mapped = tf.reshape(text_param_mapped, to_T([N, 1, 1, map_dim]))
 
-                   att_softmax = tf.reshape(
+                    att_softmax = tf.reshape(
                         tf.nn.softmax(tf.reshape(input_arr0, to_T([N, H*W]))),
                         to_T([ N, H, W, 1]))
-                   # att_feat has shape [N, D_vis]
-                   att_feat = tf.reduce_sum(image_feat_grid * att_softmax, axis=[1, 2])
-                   att_feat_mapped = tf.reshape(
+                    # att_feat has shape [N, D_vis]
+                    att_feat = tf.reduce_sum(image_feat_grid * att_softmax, axis=[1, 2])
+                    att_feat_mapped = tf.reshape(
                         fc('fc_att', att_feat, output_dim=map_dim, reuse =True), to_T([ N, 1, 1, map_dim]))
 
-                   eltwise_mult = tf.nn.l2_normalize(
+                    eltwise_mult = tf.nn.l2_normalize(
                         image_feat_mapped * text_param_mapped * att_feat_mapped, 3)
-                   att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1, reuse =True)
+                    att_grid = _1x1_conv('conv_eltwise', eltwise_mult, output_dim=1, reuse =True)
 
-                   att_grid.set_shape(self.att_shape)
-                   att_grid = tf.expand_dims(att_grid,1)
-                   att_grid = tf.tile(att_grid,[1,3,1,1,1])
+                    att_grid.set_shape(self.att_shape)
+                    att_grid = tf.expand_dims(att_grid,1)
+                    att_grid = tf.tile(att_grid,[1,3,1,1,1])
             return att_grid
         #att_grid = tf.cond(tf.reshape(tf.equal(flag,1),[]), if_true, if_false)
-        #att_grid = tf.cond(tf.convert_to_tensor(flag==1), if_true, if_false)
-        #flag_current = tf.cast(tf.gather(flag, batch_idx),dtype = tf.bool)
-        #N = tf.shape(time_idx)[0]
-        #flag = tf.reshape(flag, to_T([N,1]))
-        #flag_current = self._slice_flag(flag,batch_idx)
-        #flag_current = tf.gather(flag, batch_idx)
-        print("Flag type in transform:", flag)
-        #flag_current = tf.gather(flag,[0])
-        #flag_current = tf.reshape(flag, [])
-        #flag_current = tf.cast(flag_current,dtype = tf.bool)
-        #print("Flag current shape",flag_current.shape)
-        #att_grid = tf.cond(tf.convert_to_tensor(flag_current==1), if_true, if_false)
-        #att_grid = tf.cond(flag_current==1, if_true, if_false)
-        #att_grid = tf.cond(tf.reshape(flag_current,[]), if_true, if_false)
-        #att_grid = tf.cond(tf.cast(flag_current,tf.bool), if_true, if_false)
-        att_grid = tf.cond(tf.reduce_all(tf.equal(flag, tf.constant(1))), if_true, if_false)
-        #att_grid = tf.cond(flag,tf.reshape(tf.constant(1),[]), if_true, if_false)
+        att_grid = tf.cond(tf.convert_to_tensor(flag==1), if_true, if_false)
         return att_grid
     
 
@@ -600,21 +569,7 @@ class Modules:
                     #print("score shape in count ",scores.shape)
             return scores
         #score = tf.cond(tf.reshape(tf.equal(flag,1),[]), if_true, if_false)
-        #score = tf.cond(tf.convert_to_tensor(flag==1), if_true, if_false)
-        #flag_current = tf.cast(tf.gather(flag, batch_idx),dtype = tf.bool)
-        #N = tf.shape(time_idx)[0]
-        #flag = tf.reshape(flag, to_T([N,1]))
-        #flag_current = self._slice_flag(flag,batch_idx)
-        #flag_current = tf.gather(flag, batch_idx)
-        #flag_current = tf.gather(flag,[0])
-        #flag_current = tf.reshape(flag, [])
-        #flag_current = tf.cast(flag_current,dtype = tf.bool)
-        #print("Flag current shape",flag_current.shape)
-        #score = tf.cond(tf.convert_to_tensor(flag_current==1), if_true, if_false)
-        #score = tf.cond(tf.reshape(flag_current,[]), if_true, if_false)
-        #score = tf.cond(flag_current==1, if_true, if_false)
-        #score = tf.cond(tf.equal(tf.reshape(flag,[]), tf.constant(1)), if_true, if_false)
-        score = tf.cond(tf.reduce_all(tf.equal(flag, tf.constant(1))), if_true, if_false)
+        score = tf.cond(tf.convert_to_tensor(flag==1), if_true, if_false)
         return score
 
     def SamePropertyModule(self, input_0, input_1, time_idx, batch_idx, flag,
@@ -787,21 +742,7 @@ class Modules:
             print("shape of return score in compare from false:",scores.shape)
             return scores
         #score = tf.cond(tf.reshape(tf.equal(flag,1),[]), if_true, if_false)
-        #score = tf.cond(tf.convert_to_tensor(flag==1), if_true, if_false)
-        #flag_current = tf.cast(tf.gather(flag, batch_idx),dtype = tf.bool)
-        #N = tf.shape(time_idx)[0]
-        #flag = tf.reshape(flag, to_T([N,1]))
-        #flag_current = self._slice_flag(flag,batch_idx)
-        #flag_current = tf.gather(flag, batch_idx)
-        #flag_current = tf.gather(flag,[0])
-        #flag_current = tf.reshape(flag, [])
-        #flag_current = tf.cast(flag_current,dtype = tf.bool)
-        #print("Flag current shape",flag_current.shape)
-        #score = tf.cond(tf.convert_to_tensor(flag_current==1), if_true, if_false)
-        #score = tf.cond(flag_current==1, if_true, if_false)
-        #score = tf.cond(tf.equal(tf.reshape(flag,[]), tf.constant(1)), if_true, if_false)
-        #score = tf.cond(tf.reshape(flag_current,[]), if_true, if_false)
-        score = tf.cond(tf.reduce_all(tf.equal(flag, tf.constant(1))), if_true, if_false)
+        score = tf.cond(tf.convert_to_tensor(flag==1), if_true, if_false)
         return score
 
     def CompareReduceModule(self, input_0, input_1, time_idx, batch_idx, flag, map_dim=500, scope='CompareReduceModule',
@@ -869,21 +810,7 @@ class Modules:
                     scores = tf.tile(scores,[1,3,1])
             return scores
         #score = tf.cond(tf.reshape(tf.equal(flag,1),[]), if_true, if_false)
-        #score = tf.cond(tf.convert_to_tensor(flag==1), if_true, if_false)
-        #flag_current = tf.cast(tf.gather(flag, batch_idx),dtype = tf.bool)
-        #N = tf.shape(time_idx)[0]
-        #flag = tf.reshape(flag, to_T([N,1]))
-        #flag_current = self._slice_flag(flag,batch_idx)
-        #flag_current = tf.gather(flag, batch_idx)
-        #flag_current = tf.gather(flag,[0])
-        #flag_current = tf.reshape(flag, [])
-        #flag_current = tf.cast(flag_current,dtype = tf.bool)
-        #print("Flag current shape",flag_current.shape)
-        #score = tf.cond(tf.convert_to_tensor(flag_current==1), if_true, if_false)
-        score = tf.cond(tf.reduce_all(tf.equal(flag, tf.constant(1))), if_true, if_false)
-        #score = tf.cond(tf.reshape(flag_current,[]), if_true, if_false)
-        #score = tf.cond(flag_current==1, if_true, if_false)
-        #score = tf.cond(tf.equal(tf.reshape(flag,[]), tf.constant(1)), if_true, if_false)
+        score = tf.cond(tf.convert_to_tensor(flag==1), if_true, if_false)
         return score
 
             
@@ -1014,21 +941,7 @@ class Modules:
             print("score shape",score.shape)
             return score
         #score = tf.cond(tf.reshape(tf.equal(flag,1),[]), if_true, if_false)
-        #score = tf.cond(tf.convert_to_tensor(flag==1), if_true, if_false)
-        #flag_current = tf.cast(tf.gather(flag, batch_idx),dtype = tf.bool)
-        #N = tf.shape(time_idx)[0]
-        #flag = tf.reshape(flag, to_T([N,1]))
-        #flag_current = self._slice_flag(flag,batch_idx)
-        #flag_current = tf.gather(flag, batch_idx)
-        #flag_current = tf.gather(flag,[0])
-        #flag_current = tf.reshape(flag, [])
-        #flag_current = tf.cast(flag_current,dtype = tf.bool)
-        #print("Flag current shape",flag_current.shape)
-        #score = tf.cond(flag_current==1, if_true, if_false)
-        #score = tf.cond(tf.convert_to_tensor(flag_current==1), if_true, if_false)
-        #score = tf.cond(tf.reshape(flag_current,[]), if_true, if_false)
-        #score = tf.cond(tf.equal(tf.reshape(flag,[]), tf.constant(1)), if_true, if_false)
-        score = tf.cond(tf.reduce_all(tf.equal(flag, tf.constant(1))), if_true, if_false)
+        score = tf.cond(tf.convert_to_tensor(flag==1), if_true, if_false)
         return score
     
     def CombineModule(self, input_0, time_idx, batch_idx, flag, map_dim=500, scope='CombineModule',
